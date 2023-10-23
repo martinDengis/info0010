@@ -4,10 +4,12 @@ import java.net.*;
 public class ConnectionChannel implements Runnable {
     private Socket clientSocket;
     private String secretWord;
+    private int connectionID;
 
-    public ConnectionChannel(Socket clientSocket, String secretWord) {
+    public ConnectionChannel(Socket clientSocket, String secretWord, int connectionID) {
         this.clientSocket = clientSocket;
         this.secretWord = secretWord;
+        this.connectionID = connectionID;
     }
 
     @Override
@@ -46,7 +48,7 @@ public class ConnectionChannel implements Runnable {
             writer.close();
             clientSocket.close();
         } 
-        catch (SocketTimeoutException e1) { System.out.println("Client connection timed out."); }
+        catch (SocketTimeoutException e1) { System.out.println("Client connection (connection ID: "+ this.connectionID + ") timed out."); }
         catch (SocketException e2) { e2.printStackTrace(); }
         catch (IOException e3) { e3.printStackTrace(); }
     }

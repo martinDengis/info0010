@@ -62,6 +62,8 @@ public class WordleClient {
                         writer.print("TRY " + message + "\r\n"); // Send the message
                         writer.flush();
                         String response = getServerResponse(reader, attemptCounter); // Read the response
+                        attemptCounter++;
+                        System.out.println("DEBUG: Number of attempts left = " + (6-attemptCounter));
 
                         // If game finished, stop the game
                         if (response.contains("GAMEOVER")) break;
@@ -84,8 +86,7 @@ public class WordleClient {
                 System.out.println("Incorrect entry. Please choose number 1, 2 or 3.\n");
                 continue;
             }
-            
-            attemptCounter++;
+
         }            
     }
 
@@ -105,7 +106,7 @@ public class WordleClient {
     private static String getServerResponse(BufferedReader reader, int attemptNumber) throws IOException {
         String response = reader.readLine(); // Read the server's response
         response = response.toUpperCase();
-        if(attemptNumber == 5 || response.equals("GGGGG")) response += " GAMEOVER";
+        if(attemptNumber > 5 || response.equals("GGGGG")) response += " GAMEOVER";
         
         System.out.println(response + "\n");
         return response;
