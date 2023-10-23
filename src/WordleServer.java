@@ -6,8 +6,7 @@ public class WordleServer {
     public static void main(String[] args) {
         int port = 2348;
 
-        try {
-            ServerSocket ss = new ServerSocket(port);
+        try (ServerSocket ss = new ServerSocket(port)) {
             System.out.println("Wordle Server is listening on port " + port);
 
             while (true) {
@@ -20,11 +19,8 @@ public class WordleServer {
                 } catch (IOException  e2) {
                     System.err.println("Error accepting client connection");
                     e2.printStackTrace();
-                    break;
                 }
             }
-
-            ss.close();
         } catch (IOException e1) { 
             System.err.println("Could not bind to port " + port);
             e1.printStackTrace();

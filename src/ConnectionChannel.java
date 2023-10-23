@@ -3,7 +3,7 @@ import java.net.*;
 
 public class ConnectionChannel implements Runnable {
     private Socket clientSocket;
-    private String secretWord; // Reference to the word set
+    private String secretWord;
 
     public ConnectionChannel(Socket clientSocket, String secretWord) {
         this.clientSocket = clientSocket;
@@ -17,25 +17,27 @@ public class ConnectionChannel implements Runnable {
             clientSocket.setSoTimeout(30000);
             clientSocket.setTcpNoDelay(true);
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            // Initialize reader and writer
+            BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
             PrintWriter writer = new PrintWriter(clientSocket.getOutputStream(), true);
 
             String input;
 
+            // Loop handling client's requests
             while ((input = reader.readLine()) != null) {
                 if (input.equals("QUIT")) { break; } 
                 else if (input.equals("CHEAT")) { 
-                    writer.println(secretWord);
+                    writer.print(secretWord + "\r\n");
                     writer.flush(); 
                 } 
                 else if (input.startsWith("TRY")) {
                     String guess = input.substring(4).trim();
                     String response = checkWord(guess, secretWord);
-                    writer.println(response);
+                    writer.print(response + "\r\n");
                     writer.flush();
                 } 
                 else { 
-                    writer.println("WRONG"); 
+                    writer.print("WRONG\r\n"); 
                     writer.flush();
                 }
             }
@@ -50,11 +52,11 @@ public class ConnectionChannel implements Runnable {
     }
 
     private String checkWord(String guess, String secretWord) {
-        if (!isWordExistent(guess)) { return "NONEXISTENT"; } 
+        if (!isValidGuess(guess)) { return "NONEXISTENT"; } 
         else { return responseConstructor(guess, secretWord); }
     }
     
-    private boolean isWordExistent(String guess) {
+    private boolean isValidGuess(String guess) {
         // Check if the word is a valid 5-letter word
         return guess.length() == 5 && WordleWordSet.WORD_SET.contains(guess);
     }

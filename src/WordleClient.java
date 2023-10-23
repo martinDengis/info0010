@@ -32,61 +32,58 @@ public class WordleClient {
     }
 
     private static void gameLoop(BufferedReader reader, PrintWriter writer, Scanner scanner) throws IOException {
-        int tryCounter = 0;
+        int attemptCounter = 0;
 
-         while(tryCounter < 5) {
-                // Prompting user for input and checking input
-                String input = userInputPrompt(scanner);
-                int inputNumber = userInputCheck(input);
+        while(attemptCounter < 6) {
+            // Prompting user for input and checking input
+            String input = userInputPrompt(scanner);
+            int inputNumber = userInputCheck(input);
 
-                // Valid entry
-                if (inputNumber != 0) {
-                    // CHEAT
-                    if (inputNumber == 1) {
-                        writer.println("CHEAT\r\n");
-                        writer.flush();
-                        getServerResponse(reader);
-                    }
-
-                    // GUESS
-                    else if (inputNumber == 2) {
-                        String guess = scanner.nextLine();
-
-                        if (guess.length() == 5) {
-                            String message = guess.toUpperCase();
-                        
-                            writer.println("TRY " + message + "\r\n"); // Send the message
-                            writer.flush();
-                            String response = getServerResponse(reader); // Read the response
-
-                            // If response is gameover (or BBBBB), stop the game
-                        } else {
-                            System.out.println("Incorrect entry. Please try a five-letter word.");
-                            continue;
-                        } 
-                    }
-
-                    // QUIT
-                    else {
-                        writer.println("QUIT\r\n");
-                        writer.flush(); 
-                        String response = getServerResponse(reader);
-                        // If (response is stop the game) { print "YOU WON" + System.exit(0); }
-                        
-                    } 
-                } 
-
-                // Invalid entry
-                else { 
-                    System.out.println("Incorrect entry. Please choose number 1, 2 or 3.");
+            // Valid entry
+            if (inputNumber != 0) {
+                // CHEAT
+                if (inputNumber == 1) {
+                    writer.print("CHEAT\r\n");
+                    writer.flush();
+                    getServerResponse(reader, attemptCounter);
                     continue;
                 }
-                
-                tryCounter++;
-        }
 
-        System.out.println("YOU LOOSE!"); // + Print the word
+                // GUESS
+                else if (inputNumber == 2) {
+                    String guess = scanner.nextLine();
+
+                    if (guess.length() == 5) {
+                        String message = guess.toUpperCase();
+                    
+                        writer.print("TRY " + message + "\r\n"); // Send the message
+                        writer.flush();
+                        String response = getServerResponse(reader, attemptCounter); // Read the response
+
+                        // If game finished, stop the game
+                        if (response.contains("GAMEOVER")) break;
+                    } else {
+                        System.out.println("Incorrect entry. Please try a five-letter word.");
+                        continue;
+                    } 
+                }
+
+                // QUIT
+                else {
+                    writer.print("QUIT\r\n");
+                    writer.flush(); 
+                    return;                   
+                } 
+            } 
+
+            // Invalid entry
+            else { 
+                System.out.println("Incorrect entry. Please choose number 1, 2 or 3.");
+                continue;
+            }
             
+            attemptCounter++;
+        }            
     }
 
     private static String userInputPrompt(Scanner scanner) {
@@ -102,8 +99,11 @@ public class WordleClient {
         } catch (NumberFormatException e) { return 0; }
     }
     
-    private static String getServerResponse(BufferedReader reader) throws IOException {
+    private static String getServerResponse(BufferedReader reader, int attemptNumber) throws IOException {
         String response = reader.readLine(); // Read the server's response
+        response = response.toUpperCase();
+        if(attemptNumber == 5 || response.equals("GGGGG")) response += " GAMEOVER";
+        
         System.out.println(response + "\n");
         return response;
     }
