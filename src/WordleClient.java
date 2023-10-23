@@ -13,7 +13,7 @@ public class WordleClient {
             
             BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
             PrintWriter writer = new PrintWriter(s.getOutputStream(), true);
-            System.out.println("Successful connection with server " + serverAddress + " on port " + serverPort);
+            System.out.println("-- Successful connection with server '" + serverAddress + "' on port " + serverPort + ".\n");
 
             // Initialise user input scanner
             Scanner scanner = new Scanner(System.in);
@@ -27,7 +27,10 @@ public class WordleClient {
             writer.close();
             reader.close();
             s.close();
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) { 
+            System.out.println("-- Error connecting with server '" + serverAddress + "' on port " + serverPort + ".\nMake sure server is running.\n");
+            e.printStackTrace(); 
+        }
    
     }
 
@@ -63,7 +66,7 @@ public class WordleClient {
                         // If game finished, stop the game
                         if (response.contains("GAMEOVER")) break;
                     } else {
-                        System.out.println("Incorrect entry. Please try a five-letter word.");
+                        System.out.println("Incorrect entry. Please try a five-letter word.\n");
                         continue;
                     } 
                 }
@@ -78,7 +81,7 @@ public class WordleClient {
 
             // Invalid entry
             else { 
-                System.out.println("Incorrect entry. Please choose number 1, 2 or 3.");
+                System.out.println("Incorrect entry. Please choose number 1, 2 or 3.\n");
                 continue;
             }
             

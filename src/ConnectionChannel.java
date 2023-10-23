@@ -31,7 +31,7 @@ public class ConnectionChannel implements Runnable {
                     writer.flush(); 
                 } 
                 else if (input.startsWith("TRY")) {
-                    String guess = input.substring(4).trim();
+                    String guess = input.substring(4).trim().toLowerCase();
                     String response = checkWord(guess, secretWord);
                     writer.print(response + "\r\n");
                     writer.flush();
