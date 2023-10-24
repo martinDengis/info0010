@@ -7,7 +7,7 @@ public class WordleClient {
     private static final int SERVER_PORT = 2348;
 
     public static void main(String[] args) throws Exception {
-
+        
         try {
             // Initialise socket, reading from socket, writing to socket
             Socket s = new Socket(SERVER_ADDRESS, SERVER_PORT);
@@ -117,4 +117,5 @@ public class WordleClient {
         System.out.println(response + "\n");
         return response;
     }
+
 }

@@ -5,7 +5,7 @@ import java.net.*;
 public class WordleServer {
     private static final int PORT = 2348;
     private static int currentConnectionID = -1; // Keep track of number of connections
-    private static List<ConnectionStatus> runningConnections = new ArrayList<>(); // Keep track of running threads
+    private static List<ConnectionStatusMonitor> runningConnections = new ArrayList<>(); // Keep track of running threads
 
     public static void main(String[] args) {
 
@@ -15,7 +15,7 @@ public class WordleServer {
             while (true) {
                 // Loop identifying terminated connections
                 for(int i = 0; i < runningConnections.size(); i++) {
-                    ConnectionStatus connectionStatus = runningConnections.get(i);
+                    ConnectionStatusMonitor connectionStatus = runningConnections.get(i);
                     if(!connectionStatus.getThread().isAlive()) {
                         System.out.println("Connection with ID " + connectionStatus.getConnectionID() + " has terminated.");
                         runningConnections.remove(i);
@@ -25,17 +25,18 @@ public class WordleServer {
                 // Accepting new connections
                 try {
                     Socket clientSocket = ss.accept();
+                    currentConnectionID++;
 
                     String secretWord = generateSecretWord();
-                    ClientConnection client = new ClientConnection(clientSocket, secretWord, currentConnectionID++);
+                    ClientConnection client = new ClientConnection(clientSocket, secretWord, currentConnectionID);
 
                     Thread clientThread = new Thread(client);
-                    runningConnections.add(new ConnectionStatus(clientThread, currentConnectionID));
+                    runningConnections.add(new ConnectionStatusMonitor(clientThread, currentConnectionID));
                     clientThread.start();
                     
                     System.out.println("Connection with ID "+ currentConnectionID + " was established with server.");
                 } catch (IOException  e2) {
-                    System.err.println("Error accepting client connection. Failing connection ID : " + currentConnectionID);
+                    System.err.println("Error accepting client connection. Failing connection ID : " + (currentConnectionID+1));
                     e2.printStackTrace();
                 }
             }

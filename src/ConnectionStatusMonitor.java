@@ -1,8 +1,8 @@
-public class ConnectionStatus {
+public class ConnectionStatusMonitor {
     private final Thread THREAD;
     private final int CONNECTION_ID;
 
-    public ConnectionStatus(Thread thread, int connectionID) {
+    public ConnectionStatusMonitor(Thread thread, int connectionID) {
         this.THREAD = thread;
         this.CONNECTION_ID = connectionID;
     }
