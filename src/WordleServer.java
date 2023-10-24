@@ -5,23 +5,17 @@ import java.net.*;
 public class WordleServer {
     private static final int PORT = 2348;
     private static int currentConnectionID = -1; // Keep track of number of connections
-    private static List<ConnectionStatusMonitor> runningConnections = new ArrayList<>(); // Keep track of running threads
+    protected static List<ConnectionStatusMonitor> runningConnections = new ArrayList<>(); // Keep track of running threads
 
     public static void main(String[] args) {
+        // Create and start the connection monitor thread
+        ConnectionMonitorThread connectionMonitor = new ConnectionMonitorThread(runningConnections);
+        connectionMonitor.start();
 
         try (ServerSocket ss = new ServerSocket(PORT)) {
             System.out.println("Wordle Server is listening on port " + PORT + ".");
 
             while (true) {
-                // Loop identifying terminated connections
-                for(int i = 0; i < runningConnections.size(); i++) {
-                    ConnectionStatusMonitor connectionStatus = runningConnections.get(i);
-                    if(!connectionStatus.getThread().isAlive()) {
-                        System.out.println("Connection with ID " + connectionStatus.getConnectionID() + " has terminated.");
-                        runningConnections.remove(i);
-                    }
-                }
-
                 // Accepting new connections
                 try {
                     Socket clientSocket = ss.accept();
@@ -31,7 +25,11 @@ public class WordleServer {
                     ClientConnection client = new ClientConnection(clientSocket, secretWord, currentConnectionID);
 
                     Thread clientThread = new Thread(client);
-                    runningConnections.add(new ConnectionStatusMonitor(clientThread, currentConnectionID));
+
+                    synchronized (runningConnections) {
+                        runningConnections.add(new ConnectionStatusMonitor(clientThread, client, currentConnectionID));
+                    }
+                    
                     clientThread.start();
                     
                     System.out.println("Connection with ID "+ currentConnectionID + " was established with server.");
@@ -52,5 +50,39 @@ public class WordleServer {
         Random random = new Random();
         int index = random.nextInt(wordList.size());
         return wordList.get(index);
+    }
+}
+
+class ConnectionMonitorThread extends Thread {
+    private List<ConnectionStatusMonitor> runningConnections;
+
+    public ConnectionMonitorThread(List<ConnectionStatusMonitor> runningConnections) {
+        this.runningConnections = runningConnections;
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+            synchronized (WordleServer.runningConnections) {
+                for (int i = 0; i < runningConnections.size(); i++) {
+                    ConnectionStatusMonitor connectionStatus = runningConnections.get(i);
+                    Thread clientThread = connectionStatus.getThread();
+                    if (!clientThread.isAlive()) {
+                        int connectionID = connectionStatus.getConnectionID();
+                        System.out.println("Connection with ID " + connectionID + " has terminated.");
+
+                        // Close the socket and perform cleanup
+                        try {
+                            Socket clientSocket = connectionStatus.getClientSocket();
+                            clientSocket.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
+                        runningConnections.remove(i);
+                    }
+                }
+            }
+        }
     }
 }

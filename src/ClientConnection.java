@@ -98,4 +98,5 @@ public class ClientConnection implements Runnable {
         return new String(response);
     }
 
+    public Socket getSocket() { return this.CLIENT_SOCKET; }
 }
