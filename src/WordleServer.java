@@ -4,8 +4,8 @@ import java.net.*;
 
 public class WordleServer {
     private static final int PORT = 2348;
-    private static int currentConnectionID = -1; // Keep track of number of connections
-    protected static List<ConnectionStatusMonitor> runningConnections = new ArrayList<>(); // Keep track of running threads
+    private static int currentConnectionID = -1; // Keep track of the number of connections
+    public static List<ConnectionStatusMonitor> runningConnections = new ArrayList<>(); // Keep track of running threads
 
     public static void main(String[] args) {
         // Create and start the connection monitor thread
@@ -32,7 +32,7 @@ public class WordleServer {
                     
                     clientThread.start();
                     
-                    System.out.println("Connection with ID "+ currentConnectionID + " was established with server.");
+                    System.out.println("Connection with ID "+ currentConnectionID + " was established with the server.");
                 } catch (IOException  e2) {
                     System.err.println("Error accepting client connection. Failing connection ID : " + (currentConnectionID+1));
                     e2.printStackTrace();
