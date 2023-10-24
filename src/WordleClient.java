@@ -3,17 +3,18 @@ import java.net.*;
 import java.util.Scanner;
 
 public class WordleClient {
+    private static final String SERVER_ADDRESS = "localhost"; 
+    private static final int SERVER_PORT = 2348;
+
     public static void main(String[] args) throws Exception {
-        String serverAddress = "localhost"; 
-        int serverPort = 2348;
 
         try {
             // Initialise socket, reading from socket, writing to socket
-            Socket s = new Socket(serverAddress, serverPort);
+            Socket s = new Socket(SERVER_ADDRESS, SERVER_PORT);
             
             BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
             PrintWriter writer = new PrintWriter(s.getOutputStream(), true);
-            System.out.println("-- Successful connection with server '" + serverAddress + "' on port " + serverPort + ".\n");
+            System.out.println("-- Successful connection with server '" + SERVER_ADDRESS + "' on port " + SERVER_PORT + ".\n");
 
             // Initialise user input scanner
             Scanner scanner = new Scanner(System.in);
@@ -28,7 +29,7 @@ public class WordleClient {
             reader.close();
             s.close();
         } catch (IOException e) { 
-            System.out.println("-- Error connecting with server '" + serverAddress + "' on port " + serverPort + ".\nMake sure server is running.\n");
+            System.out.println("-- Error connecting with server '" + SERVER_ADDRESS + "' on port " + SERVER_PORT + ".\nMake sure server is running.\n");
             e.printStackTrace(); 
         }
    
@@ -61,8 +62,10 @@ public class WordleClient {
                     
                         writer.print("TRY " + message + "\r\n"); // Send the message
                         writer.flush();
+
+                        attemptCounter++; // Increment the attempt counter
+
                         String response = getServerResponse(reader, attemptCounter); // Read the response
-                        attemptCounter++;
                         System.out.println("DEBUG: Number of attempts left = " + (6-attemptCounter));
 
                         // If game finished, stop the game
@@ -107,6 +110,9 @@ public class WordleClient {
         String response = reader.readLine(); // Read the server's response
         response = response.toUpperCase();
         if(attemptNumber > 5 || response.equals("GGGGG")) response += " GAMEOVER";
+
+        if(response.equals("GGGGG GAMEOVER")) response += "\n\nYOU WON!";
+        else if (response.contains("GAMEOVER")) response += "\n\nYOU LOOSE!";
         
         System.out.println(response + "\n");
         return response;
