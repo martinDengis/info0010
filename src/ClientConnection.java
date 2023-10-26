@@ -15,8 +15,8 @@ public class ClientConnection implements Runnable {
     @Override
     public void run() {
         try {
-            // Set a socket timeout (for 30 sec)
-            CLIENT_SOCKET.setSoTimeout(30000);
+            // Set a socket timeout (for 2 min 30 sec)
+            CLIENT_SOCKET.setSoTimeout(150000);
             CLIENT_SOCKET.setTcpNoDelay(true);
 
             // Initialize reader and writer
@@ -48,8 +48,8 @@ public class ClientConnection implements Runnable {
             writer.close();
             CLIENT_SOCKET.close();
         } 
-        catch (SocketTimeoutException e1) { System.out.println("Client connection (connection ID: "+ this.CONNECTION_ID + ") timed out."); }
-        catch (SocketException e2) { e2.printStackTrace(); }
+        catch (SocketTimeoutException e1) { System.err.println("Client connection (connection ID: "+ this.CONNECTION_ID + ") timed out."); }
+        catch (SocketException e2) { System.err.println("Client connection (connection ID: " + this.CONNECTION_ID + ") was reset."); }
         catch (IOException e3) { e3.printStackTrace(); }
     }
 
