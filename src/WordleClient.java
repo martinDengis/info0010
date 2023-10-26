@@ -1,7 +1,23 @@
 import java.io.*;
-import java.net.*;
+import java.net.Socket;
 import java.util.Scanner;
 
+/** Wordle project (part I).
+ * 
+ * @Course INFO0010 - Introduction to computer networking
+ * @Instructor Pr. Guy Leduc
+ * @author Martin Dengis (s193348)
+ * @AcademicYear 2023-2024
+ * --------------------------------------------------------
+ * The WordleClient class provides a simple implementation of a Client interface.
+ * 
+ * The class includes the following methods:
+ * @method main : Set up client Socket and start the game.
+ * @method gameLoop : Prompt user for input and send requests to server via socket.
+ * @method userInputPrompt : Display choice message and return scanner for input.
+ * @method userInputCheck : Verify validity of chosen option and return choice as int.
+ * @method getServerResponse : Get server response and return it updated with game state.
+ */
 public class WordleClient {
     private static final String SERVER_ADDRESS = "localhost"; 
     private static final int SERVER_PORT = 2348;
@@ -44,7 +60,7 @@ public class WordleClient {
             int inputNumber = userInputCheck(input);
 
             // Invalid entry
-            if (inputNumber == 0) { 
+            if (inputNumber <= 0) { 
                 System.out.println("Incorrect entry. Please choose number 1, 2 or 3.\n");
                 continue; 
             }
@@ -98,11 +114,16 @@ public class WordleClient {
     }
     
     private static int userInputCheck(String input) {
+        /** Returns
+         *  - (-1) if error
+         *  - 0 if invalid input
+         *  - the received input casted to an int otherwise
+         */
         try{ 
             int inputNumber = Integer.parseInt(input); 
             if(inputNumber == 1 || inputNumber == 2 || inputNumber == 3) return inputNumber;
             else return 0;
-        } catch (NumberFormatException e) { return 0; }
+        } catch (NumberFormatException e) { return -1; }
     }
     
     private static String getServerResponse(BufferedReader reader, int attemptNumber) throws IOException {

@@ -1,6 +1,24 @@
 import java.io.*;
 import java.net.*;
 
+/** Wordle project (part I).
+ * 
+ * @Course INFO0010 - Introduction to computer networking
+ * @Instructor Pr. Guy Leduc
+ * @author Martin Dengis (s193348)
+ * @AcademicYear 2023-2024
+ * --------------------------------------------------------
+ * The ClientConnection class handles each individual client connection as a thread.
+ * It implements the Runnable interface.
+ * 
+ * The class includes the following methods:
+ * @constructor ClientConnection : Specify connection details (socket, secret word and connection ID).
+ * @method run : Handle client's requests (QUIT, CHEAT, TRY x).
+ * @method checkWord : Handles client's attempts to find secret word by calling
+ *  @submethod isValidGuess : Return true is guess word is 5 letters long and exists, false otherwise
+ *  @submethod responseConstructor : Return string representation of well-placed, misplaced 
+ *                                  and wrong letters in guess word (see Project details)
+ */
 public class ClientConnection implements Runnable {
     private final Socket CLIENT_SOCKET;
     private final String SECRET_WORD;
