@@ -8,23 +8,23 @@ import java.net.*;
  * @author Martin Dengis (s193348)
  * @AcademicYear 2023-2024
  * --------------------------------------------------------
- * The ClientConnection class handles each individual client connection as a thread.
+ * The ClientHandler class handles each individual client connection as a thread.
  * It implements the Runnable interface.
  * 
  * The class includes the following methods:
- * @constructor ClientConnection : Specify connection details (socket, secret word and connection ID).
+ * @constructor ClientHandler : Specify connection details (socket, secret word and connection ID).
  * @method run : Handle client's requests (QUIT, CHEAT, TRY x).
  * @method checkWord : Handles client's attempts to find secret word by calling
  *  @submethod isValidGuess : Return true is guess word is 5 letters long and exists, false otherwise
  *  @submethod responseConstructor : Return string representation of well-placed, misplaced 
  *                                  and wrong letters in guess word (see Project details)
  */
-public class ClientConnection implements Runnable {
+public class ClientHandler implements Runnable {
     private final Socket CLIENT_SOCKET;
     private final String SECRET_WORD;
     private final int CONNECTION_ID;
 
-    public ClientConnection(Socket clienSocket, String secretWord, int connectionID) {
+    public ClientHandler(Socket clienSocket, String secretWord, int connectionID) {
         this.CLIENT_SOCKET = clienSocket;
         this.SECRET_WORD = secretWord;
         this.CONNECTION_ID = connectionID;

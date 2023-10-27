@@ -10,7 +10,7 @@ import java.net.*;
  * @AcademicYear 2023-2024
  * --------------------------------------------------------
  * The WordleServer class provides a simple implementation of a Wordle Server interface.
- * It manages entering connections by delegating to the ClientConnection class
+ * It manages entering connections by delegating to the ClientHandler class
  * each new client as a separate thread.
  * 
  * The class includes the following methods:
@@ -38,7 +38,7 @@ public class WordleServer {
                     currentConnectionID++;
 
                     String secretWord = generateSecretWord();
-                    ClientConnection client = new ClientConnection(clientSocket, secretWord, currentConnectionID);
+                    ClientHandler client = new ClientHandler(clientSocket, secretWord, currentConnectionID);
 
                     Thread clientThread = new Thread(client);
                     runningConnections.add(new ConnectionStatusMonitor(clientThread, currentConnectionID));

@@ -12,7 +12,7 @@ import java.util.Scanner;
  * The WordleClient class provides a simple implementation of a Client interface.
  * 
  * The class includes the following methods:
- * @method main : Set up client Socket and start the game.
+ * @method main : Set up client Socket and start game (method gameLoop).
  * @method gameLoop : Prompt user for input and send requests to server via socket.
  * @method userInputPrompt : Display choice message and return scanner for input.
  * @method userInputCheck : Verify validity of chosen option and return choice as int.
