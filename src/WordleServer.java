@@ -57,7 +57,7 @@ public class WordleServer {
         } 
     }
 
-    private synchronized static String generateSecretWord() {
+    private static String generateSecretWord() {
         ArrayList<String> wordList = new ArrayList<String>(WordleWordSet.WORD_SET);
         Random random = new Random();
         int index = random.nextInt(wordList.size());

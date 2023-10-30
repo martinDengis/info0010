@@ -88,6 +88,7 @@ public class WordleClient {
                         attemptCounter++; // Increment the attempt counter
                         
                         String response = getServerResponse(reader, attemptCounter); // Read the response
+                        if (response.equals("NONEXISTENT")) attemptCounter--;
 
                         // If game finished, stop the game
                         if (response.contains("GAMEOVER")) break;
@@ -129,6 +130,12 @@ public class WordleClient {
     private static String getServerResponse(BufferedReader reader, int attemptNumber) throws IOException {
         String response = reader.readLine(); // Read the server's response
         response = response.toUpperCase();
+
+        // If NONEXISTENT, no processing to do
+        if (response.contains("NONEXISTENT")) {
+            System.out.println(response + "\n");
+            return response;
+        }
 
         // If no more tries allowed or win, append GAMEOVER
         if(attemptNumber > 5 || response.equals("GGGGG")) response += " GAMEOVER";
