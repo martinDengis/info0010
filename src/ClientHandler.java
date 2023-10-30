@@ -91,14 +91,14 @@ public class ClientHandler implements Runnable {
     private String responseConstructor(String guess) {
         
         // Initialise response and tracking arrays
-        char[] response = new char[5];
+        char[] pattern = new char[5];
         boolean[] usedInGuess = new boolean[5];
         boolean[] usedInSecret = new boolean[5];
     
         // GREEN: Mark well-placed letters
         for (int i = 0; i < 5; i++) {
             if (guess.charAt(i) == this.SECRET_WORD.charAt(i)) {
-                response[i] = 'G';
+                pattern[i] = 'G';
                 usedInGuess[i] = usedInSecret[i] = true;
             }
         }
@@ -108,7 +108,7 @@ public class ClientHandler implements Runnable {
             if (!usedInGuess[i]) {
                 for (int j = 0; j < 5; j++) {
                     if (!usedInSecret[j] && guess.charAt(i) == this.SECRET_WORD.charAt(j)) {
-                        response[i] = 'Y';
+                        pattern[i] = 'Y';
                         usedInGuess[i] = usedInSecret[j] = true;
                         break;
                     }
@@ -118,9 +118,11 @@ public class ClientHandler implements Runnable {
     
         // BLACK: Mark incorrect letters
         for (int i = 0; i < 5; i++)
-            if (!usedInGuess[i]) { response[i] = 'B'; }
-    
-        return new String(response);
+            if (!usedInGuess[i]) { pattern[i] = 'B'; }
+
+        String response = new String(pattern);
+        if(response.equals("GGGGG")) { return response+" GAMEOVER"; }
+        else { return response; }
     }
 
 }

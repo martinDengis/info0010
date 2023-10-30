@@ -132,20 +132,24 @@ public class WordleClient {
         String response = reader.readLine(); // Read the server's response
         response = response.toUpperCase();
 
-        // If NONEXISTENT, no processing to do
-        if (response.equals("NONEXISTENT")) {
+        // If NONEXISTENT or WRONG, no processing to do
+        if (response.equals("NONEXISTENT") || response.equals("WRONG")) {
             System.out.println(response + "\n");
             return response;
         }
-
-        // If no more tries allowed or win, append GAMEOVER
-        if(attemptNumber > 5 || response.equals("GGGGG")) response += " GAMEOVER";
-
-        // Specifying game state for user
-        if(response.equals("GGGGG GAMEOVER")) response += "\n\nYOU WON!";
-        else if (response.contains("GAMEOVER")) response += "\n\nYOU LOOSE!";
-        else response += "\nNumber of attempts left = " + (6-attemptNumber);
+        // If win, append "YOU WON!"
+        else if (response.equals("GGGGG GAMEOVER")) {
+            System.out.println(response + "\n\nYOU WON!");
+            return response;
+        }
+        // If no more attempts available, append "YOU LOOSE!"
+        else if(attemptNumber > 5) {
+            response += " GAMEOVER\n\nYOU LOOSE!";
+            System.out.println(response);
+            return response;
+        }
         
+        response += "\nNumber of attempts left = " + (6-attemptNumber);
         System.out.println(response + "\n");
         return response;
     }
