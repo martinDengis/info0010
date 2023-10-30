@@ -15,7 +15,8 @@ import java.net.*;
  * @constructor ClientHandler : Specify connection details (socket, secret word and connection ID).
  * @method run : Handle client's requests (QUIT, CHEAT, TRY x).
  * @method checkWord : Handles client's attempts to find secret word by calling
- *  @submethod isValidGuess : Return true is guess word is 5 letters long and exists, false otherwise
+ *  @submethod isValidGuess : Return true is guess word is 5 letters long, false otherwise
+ *  @submethod isExistent : Return true is guess word exists, false otherwise
  *  @submethod responseConstructor : Return string representation of well-placed, misplaced 
  *                                  and wrong letters in guess word (see Project details)
  */
@@ -47,7 +48,7 @@ public class ClientHandler implements Runnable {
             while ((input = reader.readLine()) != null) {
                 if (input.equals("QUIT")) { break; } 
                 else if (input.equals("CHEAT")) { 
-                    writer.print(this.SECRET_WORD + "\r\n");
+                    writer.print(this.SECRET_WORD.toUpperCase() + "\r\n");
                     writer.flush(); 
                 } 
                 else if (input.startsWith("TRY")) {
@@ -72,12 +73,18 @@ public class ClientHandler implements Runnable {
     }
 
     private String checkWord(String guess) {
-        if (!isValidGuess(guess)) { return "NONEXISTENT"; } 
+        if (!isValidGuess(guess)) { return "WRONG"; }
+        else if (!isExistent(guess)) { return "NONEXISTENT"; }
         else { return responseConstructor(guess); }
     }
     
     private boolean isValidGuess(String guess) {
         // Check if the word is a valid 5-letter word
+        return guess.length() == 5;
+    }
+    
+    private boolean isExistent(String guess) {
+        // Check if the word is a valid 5-letter word and exists
         return guess.length() == 5 && WordleWordSet.WORD_SET.contains(guess);
     }
     

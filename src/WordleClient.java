@@ -133,7 +133,7 @@ public class WordleClient {
         response = response.toUpperCase();
 
         // If NONEXISTENT, no processing to do
-        if (response.contains("NONEXISTENT")) {
+        if (response.equals("NONEXISTENT")) {
             System.out.println(response + "\n");
             return response;
         }
