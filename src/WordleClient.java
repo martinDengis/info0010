@@ -9,7 +9,8 @@ import java.util.Scanner;
  * @author Martin Dengis (s193348)
  * @AcademicYear 2023-2024
  * --------------------------------------------------------
- * The WordleClient class provides a simple implementation of a Client interface.
+ * The WordleClient class provides a simple implementation of a Client interface
+ * for a game of Wordle. It communicates with the WordleServer via a socket.
  * 
  * The class includes the following methods:
  * @method main : Set up client Socket and start game (method gameLoop).
@@ -143,7 +144,7 @@ public class WordleClient {
         // Specifying game state for user
         if(response.equals("GGGGG GAMEOVER")) response += "\n\nYOU WON!";
         else if (response.contains("GAMEOVER")) response += "\n\nYOU LOOSE!";
-        else response += "\n\nNumber of attempts left = " + (6-attemptNumber);
+        else response += "\nNumber of attempts left = " + (6-attemptNumber);
         
         System.out.println(response + "\n");
         return response;

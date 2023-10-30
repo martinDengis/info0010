@@ -35,7 +35,7 @@ public class WordleServer {
                 // Accepting new connections
                 try {
                     Socket clientSocket = ss.accept();
-                    currentConnectionID++;
+                    currentConnectionID++;  // Increment current connection ID as new connection accepted
 
                     String secretWord = generateSecretWord();
                     ClientHandler client = new ClientHandler(clientSocket, secretWord, currentConnectionID);
@@ -70,7 +70,7 @@ public class WordleServer {
             if(!connectionStatus.getThread().isAlive()) {
                 System.out.println("Connection with ID " + connectionStatus.getConnectionID() + " has terminated.");
                 runningConnections.remove(i);
-                i--;
+                i--; // To avoid skipping next connection when reentering the loop
             }
         }
     }
