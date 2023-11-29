@@ -23,8 +23,7 @@ public class WordleClient {
     private static final String SERVER_ADDRESS = "localhost"; 
     private static final int SERVER_PORT = 2348;
 
-    public static void main(String[] args) throws Exception {
-        
+    public static void main(String[] args) {
         try {
             // Initialise socket, reading from socket, writing to socket
             Socket s = new Socket(SERVER_ADDRESS, SERVER_PORT);

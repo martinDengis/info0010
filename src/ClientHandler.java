@@ -52,7 +52,7 @@ public class ClientHandler implements Runnable {
                     writer.print(this.SECRET_WORD.toUpperCase() + "\r\n");
                     writer.flush(); 
                 } 
-                else if (input.startsWith("TRY")) {
+                else if (input.matches("TRY [A-Z]{5}")) {
                     String guess = input.substring(4).trim().toLowerCase();
                     String response = checkWord(guess, attemptCounter);
                     if(!response.equals("NONEXISTENT") && !response.equals("WRONG")) attemptCounter++;
