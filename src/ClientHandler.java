@@ -43,6 +43,7 @@ public class ClientHandler implements Runnable {
             PrintWriter writer = new PrintWriter(CLIENT_SOCKET.getOutputStream(), true);
 
             String input;
+            int attemptCounter = 0;
 
             // Loop handling client's requests
             while ((input = reader.readLine()) != null) {
@@ -53,7 +54,8 @@ public class ClientHandler implements Runnable {
                 } 
                 else if (input.startsWith("TRY")) {
                     String guess = input.substring(4).trim().toLowerCase();
-                    String response = checkWord(guess);
+                    String response = checkWord(guess, attemptCounter);
+                    if(!response.equals("NONEXISTENT") && !response.equals("WRONG")) attemptCounter++;
                     writer.print(response + "\r\n");
                     writer.flush();
                 } 
@@ -72,10 +74,10 @@ public class ClientHandler implements Runnable {
         catch (IOException e3) { e3.printStackTrace(); }
     }
 
-    private String checkWord(String guess) {
+    private String checkWord(String guess, int attemptCounter) {
         if (!isValidGuess(guess)) { return "WRONG"; }
         else if (!isExistent(guess)) { return "NONEXISTENT"; }
-        else { return responseConstructor(guess); }
+        else { return responseConstructor(guess, attemptCounter); }
     }
     
     private boolean isValidGuess(String guess) {
@@ -88,7 +90,7 @@ public class ClientHandler implements Runnable {
         return WordleWordSet.WORD_SET.contains(guess);
     }
     
-    private String responseConstructor(String guess) {
+    private String responseConstructor(String guess, int attemptCounter) {
         
         // Initialise response and tracking arrays
         char[] pattern = new char[5];
@@ -121,7 +123,7 @@ public class ClientHandler implements Runnable {
             if (!usedInGuess[i]) { pattern[i] = 'B'; }
 
         String response = new String(pattern);
-        if(response.equals("GGGGG")) { return response + " GAMEOVER"; }
+        if(response.equals("GGGGG") || attemptCounter==5) { return response + " GAMEOVER"; }
         else { return response; }
     }
 

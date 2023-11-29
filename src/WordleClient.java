@@ -142,10 +142,9 @@ public class WordleClient {
             System.out.println(response + "\n\nYOU WON!");
             return response;
         }
-        // If no more attempts available, append "YOU LOOSE!"
-        else if(attemptNumber > 5) {
-            response += " GAMEOVER\n\nYOU LOOSE!";
-            System.out.println(response);
+        // If no more attempts available (GAMEOVER without win), append "YOU LOOSE!"
+        else if(response.contains("GAMEOVER")) {
+            System.out.println(response + "\n\nYOU LOOSE!");
             return response;
         }
         
