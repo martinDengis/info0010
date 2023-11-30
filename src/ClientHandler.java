@@ -86,8 +86,8 @@ public class ClientHandler implements Runnable {
     }
     
     private boolean isExistent(String guess) {
-        // Check if the word exists
-        return WordleWordSet.WORD_SET.contains(guess);
+        // Check if the word is a valid 5-letter word and exists
+        return guess.length() == 5 && WordleWordSet.WORD_SET.contains(guess);
     }
     
     private String responseConstructor(String guess, int attemptCounter) {
