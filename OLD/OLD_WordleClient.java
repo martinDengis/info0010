@@ -9,7 +9,7 @@ import java.util.Scanner;
  * @author Martin Dengis (s193348)
  * @AcademicYear 2023-2024
  * --------------------------------------------------------
- * The WordleClient class provides a simple implementation of a Client interface
+ * The OLD_WordleClient class provides a simple implementation of a Client interface
  * for a game of Wordle. It communicates with the WordleServer via a socket.
  * 
  * The class includes the following methods:
@@ -19,7 +19,7 @@ import java.util.Scanner;
  * @method userInputCheck : Verify validity of chosen option and return choice as int.
  * @method getServerResponse : Get server response and return it updated with game state.
  */
-public class WordleClient {
+public class OLD_WordleClient {
     private static final String SERVER_ADDRESS = "localhost"; 
     private static final int SERVER_PORT = 2348;
 
