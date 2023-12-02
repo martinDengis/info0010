@@ -1,53 +1,50 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class WordleServer {
+    private static final int SERVER_ID = new Random().nextInt(9999);
     private static final int PORT = 8008;
+    private static final Map<String, SessionData> sessions = new ConcurrentHashMap<>(); // ConcurrentHashMap ensures thread safety
 
     public static void main(String[] args) {
-        int currentConnectionID = -1;
-        List<ConnectionStatusMonitor> runningConnections = new ArrayList<>();
-
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             System.out.println("-- Wordle HTTP Server is listening on port " + PORT + ".");
 
             while (true) {
-                isTerminated(runningConnections);
-
+                // Accepting new connections
                 try {
                     Socket clientSocket = serverSocket.accept();
-                    currentConnectionID++;
-
                     // Handle HTTP request in a separate thread
-                    HttpHandler httpHandler = new HttpHandler(clientSocket, currentConnectionID);
+                    HttpHandler httpHandler = new HttpHandler(getServerID(), clientSocket);
                     Thread httpThread = new Thread(httpHandler);
-                    runningConnections.add(new ConnectionStatusMonitor(httpThread, currentConnectionID));
                     httpThread.start();
 
-                    System.out.println("Connection with ID " + currentConnectionID + " was established with server.");
-                } catch (IOException e) {
-                    System.err.println("Error accepting client connection. Failing connection ID: " + (currentConnectionID + 1));
-                    e.printStackTrace();
+                } catch (IOException ioe2) {
+                    System.err.println("-- Error accepting client connection.");
+                    ioe2.printStackTrace();
                 }
             }
-        } catch (IOException e) {
+        } catch (IOException ioe1) {
             System.err.println("-- Could not bind to port " + PORT);
-            e.printStackTrace();
+            ioe1.printStackTrace();
             System.exit(1);
         }
     }
 
-    private static void isTerminated(List<ConnectionStatusMonitor> runningConnections) {
-        for(int i = 0; i < runningConnections.size(); i++) {
-            ConnectionStatusMonitor connectionStatus = runningConnections.get(i);
-            if(!connectionStatus.getThread().isAlive()) {
-                System.out.println("Connection with ID " + connectionStatus.getConnectionID() + " has terminated.");
-                runningConnections.remove(i);
-                i--; // To avoid skipping next connection when reentering the loop
-            }
-        }
+    public static int getServerID() { return SERVER_ID; }
+
+    // Methods to manage sessions mapping
+    public static void addSession(String id, SessionData session) {
+        if (id == null || session == null)
+            throw new IllegalArgumentException("Neither id nor session can be null");
+
+        sessions.put(id, session);
     }
+    public static SessionData getSessionData(String id) { return sessions.get(id); }
+    public static void removeSession(String id) { sessions.remove(id); }
+    public static boolean hasSession(String id) { return sessions.containsKey(id); }
 }
