@@ -34,8 +34,8 @@ public class HttpHandler implements Runnable {
         this.sessionID = "";
         this.buffer = null;
         this.isChunked = false;
-        this.isRequestGuess = false;
         this.headers = new HashMap<String, String>();
+        this.isRequestGuess = false;
         this.uri = "";
         this.guess = "";
     }

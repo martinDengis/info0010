@@ -20,7 +20,7 @@ public class SessionData {
             List<String> data = new ArrayList<String>();
             data.add(""); // initial guess
             data.add(""); // initial color code
-            this.gameState.put(i+1, data);
+            this.gameState.put(i, data);
         }
     }
 
@@ -37,7 +37,7 @@ public class SessionData {
     public void setMaxAge(int maxAge) {this.maxAge = maxAge; }
     public void incrementAttempts() { this.attempts++; }
     public void resetAttempts() { this.attempts = 0; }
-    public void setGuess(int attempt, String guess, String color) {
+    public void setGamestate(int attempt, String guess, String color) {
         List<String> data = new ArrayList<String>();
         data.add(guess);
         data.add(color);
