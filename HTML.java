@@ -2,19 +2,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 public class HTML {
-   public String generateWordlePage() { // Boolean if cookie --> Générer différemment la page.
-
-    // session data 
-    // 1 : [guess, color]
-    // 2 : [guess, color]
-    // 3 : [guess, color]
-    // 4 : ["", ""]
-    // 5 : ["", ""]
-    // 6 : ["", ""]
-
-
+   public String generateWordlePage() { // TODO + TODO generateErrorPage(getStatusMessage)
     String title = "Wordle Game";
-    String header = "<header><img src=\"logo.png\" alt=\"WORDLE\"></header>";
+    String header = "<header><img src=\"logo.png\" alt=\"WORDLE\"></header>"; // TODO BIT64
     
     String wordleBoard = generateWordleBoard();
     String keyboard = generateKeyboard();
@@ -79,19 +69,16 @@ public class HTML {
 
     String sendGuess = 
                         "function sendGuess(guess) {" + 
-                        "    const url = `/guess?word=${guess}`;" + // todo MODIFIER POUR RESPECTER STRUCTURE MARTIN ajouter header ?
-                        "    const options = {" +
-                        "        method: 'GET'," + // or 'POST', if that's what you would use
-                        "        credentials: 'include' " + // if you're managing sessions with cookies
-                        "    };" +
-                            // Log the URL and options to the console
-                        // "    console.log('URL:', url);" +
-                        // "    console.log('Options:', options);" +
-                        "    fetch(url, options)" +
-                        "    .then(response => response.json())" + // todo GET play.html/guess?word=..... HTTP1.1
-                                                                   // Content-Length: 41
+                        "    fetch(`/submit-guess?word=${guess}`, {" + 
+                        "        method: 'GET'," +
+                        "        headers: {" + 
+                        "        'Row' = ; " + // TODO retrieve row
+                        "        }," +
+                        "        credentials: 'include' " + // TODO include cookies for session management
+                        "    })" +
+                        "    .then(response => response.json())" +
                         "    .then(data => {" +
-                        "        if (data.error) {" +
+                        "        if (data.error) {" +   // TODO CREER des pages pour erreurs
                         "            alert('The guessed word does not exist.');" +
                                     // Additional logic to allow user to correct the guess
                         "        } else {" +
@@ -154,7 +141,7 @@ public class HTML {
                     onEraseFunction + 
                     keyPressedFunction +
                     onSubmitGuess + 
-                    sendGuess + 
+                    sendGuess +
                     updateBoardWithFeedback +
                     "document.addEventListener('DOMContentLoaded', (event) => {" + // Fallback form
                     "  var fallbackForm = document.getElementById('fallbackForm');" +
@@ -275,7 +262,8 @@ public class HTML {
     }
 
 
-    // FOR POST
+    // TODO FOR POST
+    // TODO FOR RELOAD COOKIES
 
     // public String buildUpdatedHtml(SessionData sessionData) {
     //     StringBuilder htmlBuilder = new StringBuilder();
