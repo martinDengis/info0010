@@ -2,9 +2,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 public class HTML {
-   public String generateWordlePage() {
+   public String generateWordlePage() { // TODO + TODO generateErrorPage(getStatusMessage)
     String title = "Wordle Game";
-    String header = "<header><img src=\"logo.png\" alt=\"WORDLE\"></header>";
+    String header = "<header><img src=\"logo.png\" alt=\"WORDLE\"></header>"; // TODO BIT64
     
     String wordleBoard = generateWordleBoard();
     String keyboard = generateKeyboard();
@@ -70,12 +70,15 @@ public class HTML {
     String sendGuess = 
                         "function sendGuess(guess) {" + 
                         "    fetch(`/submit-guess?word=${guess}`, {" + 
-                        "        method: 'GET'," + // Or 'POST' if applicable
-                        "        credentials: 'include' " +// To include cookies for session management
+                        "        method: 'GET'," +
+                        "        headers: {" + 
+                        "        'Row' = ; " + // TODO retrieve row
+                        "        }," +
+                        "        credentials: 'include' " + // TODO include cookies for session management
                         "    })" +
                         "    .then(response => response.json())" +
                         "    .then(data => {" +
-                        "        if (data.error) {" +
+                        "        if (data.error) {" +   // TODO CREER des pages pour erreurs
                         "            alert('The guessed word does not exist.');" +
                                     // Additional logic to allow user to correct the guess
                         "        } else {" +
@@ -138,6 +141,8 @@ public class HTML {
                     onEraseFunction + 
                     keyPressedFunction +
                     onSubmitGuess + 
+                    sendGuess +
+                    updateBoardWithFeedback +
                     "document.addEventListener('DOMContentLoaded', (event) => {" + // Fallback form
                     "  var fallbackForm = document.getElementById('fallbackForm');" +
                     "  if (fallbackForm) {" +
@@ -257,7 +262,8 @@ public class HTML {
     }
 
 
-    // FOR POST
+    // TODO FOR POST
+    // TODO FOR RELOAD COOKIES
 
     // public String buildUpdatedHtml(SessionData sessionData) {
     //     StringBuilder htmlBuilder = new StringBuilder();
@@ -325,7 +331,6 @@ public class HTML {
     public static void main(String[] args) {
         HTML htmlGenerator = new HTML();
         String content = htmlGenerator.generateWordlePage();
-        String error = htmlGenerator.generateErrorPage(statusCode);
 
         try (FileWriter fileWriter = new FileWriter("wordle.html")) {
             fileWriter.write(content);
