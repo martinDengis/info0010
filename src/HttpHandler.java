@@ -380,7 +380,7 @@ public class HttpHandler implements Runnable {
      * @param statusCode the HTTP status code
      * @return the status message
      */
-    private String getStatusMessage(int statusCode) {
+    private static String getStatusMessage(int statusCode) {
         switch (statusCode) {
             case 200: return "OK";
             case 303: return "See Other";
@@ -393,7 +393,7 @@ public class HttpHandler implements Runnable {
             default: return "Unknown Status";
         }
     }
-   
+
     /**
      * Generates a secret word by randomly selecting a word from the word list.
      *
