@@ -1,3 +1,7 @@
+/* TODO:
+ * - Check that guess exists
+ */
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -202,8 +206,10 @@ public class HttpHandler implements Runnable {
      * @param uri the URI to check
      * @return true if the URI is valid, false otherwise
      */
-    private boolean isURIValid(String uri) {
-        if (uri.matches("^/$") || uri.matches("^/play\\.html$")) {
+    private boolean isURIValid(String uri, PrintWriter writer) {
+        if(uri.matches("^/$"))
+            sendErrorResponse(writer, 303);
+        else if (uri.matches("^/play\\.html$")) {
             this.uri = "/play.html";
             return true;
         }
@@ -353,6 +359,8 @@ public class HttpHandler implements Runnable {
         for (Map.Entry<String, String> header : responseHeaders.entrySet())
             writer.println(header.getKey() + ": " + header.getValue());
 
+        writer.println(WordleServer.getSessionData(this.sessionID));
+
         writer.println();
         writer.println(content);
         writer.flush();
@@ -367,9 +375,14 @@ public class HttpHandler implements Runnable {
     private void sendErrorResponse(PrintWriter writer, int statusCode) {
         String statusMessage = getStatusMessage(statusCode);
 
+        HTML htmlGenerator = new HTML();
+        String error = htmlGenerator.generateErrorPage(statusCode);
+
         writer.println("HTTP/1.1 " + statusCode + " " + statusMessage);
         writer.println("Content-Type: text/plain");
         writer.println("Content-Length: 0");
+        if (statusCode == 303) writer.println("Location: http://localhost:8010/play.html"); // à revoir
+        writer.println(error);
         writer.println();
         writer.flush();
     }

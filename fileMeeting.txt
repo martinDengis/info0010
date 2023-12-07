@@ -1,0 +1,25 @@
+int : [guess, color]
+
+1 : [guess, BBBBB]
+"2:[guess,BBBBB]"
+3 : [guess, BBBBB]
+4 : ["", ""]
+5 : ["", ""]
+6 : ["", ""]
+
+1:guess:BBBBB;2:guess:BBBBB
+
+POST play.html/guess?word=xxxxx HTTP/1.1
+Content-Length: 41
+Transfer-Encoding: chuncked
+Cookie: SESSID=123456789
+Section: 4
+
+Body, qui se trouve
+être du texte.
+Ce texte est plus ou moins long
+par ligne.
+
+
+if (method.equals("POST")) generateWordlePage(false, SessionData)
+else if (method.equals("GET")) return (???) Update(SessionData)

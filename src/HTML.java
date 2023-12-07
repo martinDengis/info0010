@@ -325,6 +325,7 @@ public class HTML {
     public static void main(String[] args) {
         HTML htmlGenerator = new HTML();
         String content = htmlGenerator.generateWordlePage();
+        String error = htmlGenerator.generateErrorPage(statusCode);
 
         try (FileWriter fileWriter = new FileWriter("wordle.html")) {
             fileWriter.write(content);
