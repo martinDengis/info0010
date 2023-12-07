@@ -1,7 +1,3 @@
-/* TODO:
- * - Check that guess exists
- */
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -30,6 +26,7 @@ public class HttpHandler implements Runnable {
     private boolean isRequestGuess;
     private String uri;
     private String guess;
+    private boolean isGETmethod; 
 
     public HttpHandler(int serverID, Socket clientSocket) {
         this.serverID = serverID;
@@ -42,6 +39,7 @@ public class HttpHandler implements Runnable {
         this.isRequestGuess = false;
         this.uri = "";
         this.guess = "";
+        this.isGETmethod = true;
     }
 
     /**
@@ -60,8 +58,8 @@ public class HttpHandler implements Runnable {
             String requestLine = reader.readLine();
 
             // Process the request
-            boolean success = handleRequest(requestLine, reader, writer);
-            if (!success) sendErrorResponse(writer, 501);
+            handleRequest(requestLine, reader, writer);
+            // if (!success) sendErrorResponse(writer, 501);
 
             reader.close();
             writer.close();
@@ -87,9 +85,9 @@ public class HttpHandler implements Runnable {
         if (this.sessionID.isEmpty()) {
             this.newSession = true;
             this.sessionID = UUID.randomUUID().toString();
-            
+
             // Create a new entry in the sessions mapping
-            SessionData sessionData = new SessionData(this.sessionID, 600, generateSecretWord());
+            SessionData sessionData = new SessionData(600, generateSecretWord());
             WordleServer.addSession(this.sessionID, sessionData);
         }
 
@@ -97,14 +95,29 @@ public class HttpHandler implements Runnable {
         if (currAttempt == 5) { return false; }
 
         // Read the HTTP request body
-        String body = getBody(reader); // what to do with body ? what is body ?
+        // String body = getBody(reader); // what to do with body ? what is body ?
 
         // Process the HTTP request
+        HTML htmlGenerator = new HTML();
+        String colorPattern;
         String response;
-        if (this.isRequestGuess)
-            response = responseBuilder(this.guess); // The response must match with AJAX request
-        else response = "";
-        
+
+        // Check if JavaScript is enabled
+        if (this.isGETmethod) {
+            if (this.isRequestGuess) {
+                colorPattern = responseBuilder(this.guess);
+                WordleServer.addGamestate(this.sessionID, this.guess, colorPattern);
+                String currGameState = WordleServer.getCurrGameState(this.sessionID);   // 1:guess:color
+                response = currGameState;
+            }
+        }
+        // JavaScript disabled -> POST method requires regenerating whole page
+        else {
+            String fullGameState = WordleServer.getFullGameState(this.sessionID);   
+            // 0:guess:color;1:guess:color;2:guess:color;3:guess:color;4:guess:color;5:guess:color;
+            response = htmlGenerator.generateWordlePage(fullGameState);
+        }
+
         // Send the HTTP response
         sendHttpResponse(writer, 200, "text/html", response);
         return true;
@@ -174,7 +187,7 @@ public class HttpHandler implements Runnable {
             }
             
             // Check if the URI is valid
-            if (!isURIValid(uri)) {
+            if (!isURIValid(uri, writer)) {
                 sendErrorResponse(writer, 404);
                 return false;
             }
@@ -195,8 +208,10 @@ public class HttpHandler implements Runnable {
      * @return true if the method is allowed, false otherwise
      */
     private boolean isMethodAllowed(String method) {
-        ArrayList<String> allowedMethods = new ArrayList<>(Arrays.asList("GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS"));
-        if (!allowedMethods.contains(method)) return false;
+        if (method.equals("GET")) this.isGETmethod = true;
+        else if (method.equals("POST")) this.isGETmethod = false;
+        else return false; 
+
         return true;
     }
 
@@ -210,14 +225,15 @@ public class HttpHandler implements Runnable {
         if(uri.matches("^/$"))
             sendErrorResponse(writer, 303);
         else if (uri.matches("^/play\\.html$")) {
-            this.uri = "/play.html";
+            this.uri = uri;
             return true;
         }
-        else if (uri.matches("^/guess\\?word=[a-z]{5}$")) {
+        else if (uri.matches("^/play\\.html/guess\\?word=[a-z]{5}$")) {
             this.uri = uri;
             this.isRequestGuess = true;
             this.guess = uri.split("=")[1].toLowerCase();
-            return true;
+            
+            return isExistent(this.guess);
         }
         
         return false;
@@ -273,6 +289,11 @@ public class HttpHandler implements Runnable {
         }
 
         return true;
+    }
+
+    private boolean isExistent(String guess) {
+        // Check if the word is a valid 5-letter word and exists
+        return guess.length() == 5 && WordleWordSet.WORD_SET.contains(guess);
     }
 
     /**
@@ -432,10 +453,11 @@ public class HttpHandler implements Runnable {
         char[] pattern = new char[5];
         boolean[] usedInGuess = new boolean[5];
         boolean[] usedInSecret = new boolean[5];
+        String secret = WordleServer.getSecretWord(this.sessionID);
     
         // GREEN: Mark well-placed letters
         for (int i = 0; i < 5; i++) {
-            if (guess.charAt(i) == WordleServer.getSecretWord(this.sessionID).charAt(i)) {
+            if (guess.charAt(i) == secret.charAt(i)) {
                 pattern[i] = 'G';
                 usedInGuess[i] = usedInSecret[i] = true;
             }
@@ -445,7 +467,7 @@ public class HttpHandler implements Runnable {
         for (int i = 0; i < 5; i++) {
             if (!usedInGuess[i]) {
                 for (int j = 0; j < 5; j++) {
-                    if (!usedInSecret[j] && guess.charAt(i) == WordleServer.getSecretWord(this.sessionID).charAt(j)) {
+                    if (!usedInSecret[j] && guess.charAt(i) == secret.charAt(j)) {
                         pattern[i] = 'Y';
                         usedInGuess[i] = usedInSecret[j] = true;
                         break;
