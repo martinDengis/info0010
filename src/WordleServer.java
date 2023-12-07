@@ -22,7 +22,6 @@ public class WordleServer {
                     HttpHandler httpHandler = new HttpHandler(getServerID(), clientSocket);
                     Thread httpThread = new Thread(httpHandler);
                     httpThread.start();
-
                 } catch (IOException ioe2) {
                     System.err.println("-- Error accepting client connection.");
                     ioe2.printStackTrace();
@@ -47,4 +46,5 @@ public class WordleServer {
     public static SessionData getSessionData(String id) { return sessions.get(id); }
     public static void removeSession(String id) { sessions.remove(id); }
     public static boolean hasSession(String id) { return sessions.containsKey(id); }
+    public static String getSecretWord(String id) { return sessions.get(id).getSecretWord(); }
 }
