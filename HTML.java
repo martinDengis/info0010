@@ -2,7 +2,17 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 public class HTML {
-   public String generateWordlePage() {
+   public String generateWordlePage() { // Boolean if cookie --> Générer différemment la page.
+
+    // session data 
+    // 1 : [guess, color]
+    // 2 : [guess, color]
+    // 3 : [guess, color]
+    // 4 : ["", ""]
+    // 5 : ["", ""]
+    // 6 : ["", ""]
+
+
     String title = "Wordle Game";
     String header = "<header><img src=\"logo.png\" alt=\"WORDLE\"></header>";
     
@@ -69,11 +79,17 @@ public class HTML {
 
     String sendGuess = 
                         "function sendGuess(guess) {" + 
-                        "    fetch(`/submit-guess?word=${guess}`, {" + 
-                        "        method: 'GET'," + // Or 'POST' if applicable
-                        "        credentials: 'include' " +// To include cookies for session management
-                        "    })" +
-                        "    .then(response => response.json())" +
+                        "    const url = `/guess?word=${guess}`;" + // todo MODIFIER POUR RESPECTER STRUCTURE MARTIN ajouter header ?
+                        "    const options = {" +
+                        "        method: 'GET'," + // or 'POST', if that's what you would use
+                        "        credentials: 'include' " + // if you're managing sessions with cookies
+                        "    };" +
+                            // Log the URL and options to the console
+                        // "    console.log('URL:', url);" +
+                        // "    console.log('Options:', options);" +
+                        "    fetch(url, options)" +
+                        "    .then(response => response.json())" + // todo GET play.html/guess?word=..... HTTP1.1
+                                                                   // Content-Length: 41
                         "    .then(data => {" +
                         "        if (data.error) {" +
                         "            alert('The guessed word does not exist.');" +
@@ -138,6 +154,8 @@ public class HTML {
                     onEraseFunction + 
                     keyPressedFunction +
                     onSubmitGuess + 
+                    sendGuess + 
+                    updateBoardWithFeedback +
                     "document.addEventListener('DOMContentLoaded', (event) => {" + // Fallback form
                     "  var fallbackForm = document.getElementById('fallbackForm');" +
                     "  if (fallbackForm) {" +
