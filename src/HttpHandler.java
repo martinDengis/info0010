@@ -10,6 +10,8 @@ import java.util.UUID;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The HttpHandler class is responsible for handling HTTP requests from clients.
@@ -93,7 +95,8 @@ public class HttpHandler implements Runnable {
 
         int currAttempt = WordleServer.getSessionData(this.sessionID).getAttempt();
         if (currAttempt > 5) {
-            sendHttpResponse(writer, 200, "application/json", "{\"Status\": \"Gameover\", \"Message\":" + WordleServer.getSecretWord(this.sessionID) +"}");
+            String response = "{\"Status\": \"Gameover\", \"Message\":\"" + WordleServer.getSecretWord(this.sessionID) +"\"}";
+            sendHttpResponse(writer, 200, "application/json", response);
         };
 
         // Read the HTTP request body
@@ -111,19 +114,19 @@ public class HttpHandler implements Runnable {
 
             // Check if winning state
             if (colorPattern.equals("GGGGG")) {
-                response = "{\"Status\": \"Win\", \"Message\":" + WordleServer.getSecretWord(this.sessionID) +"}";
+                response = "{\"Status\": \"Win\", \"Message\":\"" + WordleServer.getSecretWord(this.sessionID) + "\"}";
                 sendHttpResponse(writer, 200, "application/json", response);
                 return;
             }
 
             // Check if the current attempt is the last attempt
             if (currAttempt == 5) {
-                response = "{\"Status\": \"Gameover\", \"Message\":" + WordleServer.getSecretWord(this.sessionID) +"}";
+                response = "{\"Status\": \"Gameover\", \"Message\":\"" + WordleServer.getSecretWord(this.sessionID) + "\"}";
                 sendHttpResponse(writer, 200, "application/json", response);
                 return;
             }
 
-            response = "{\"Status\": \"Playing\", \"Message\":" + currGameState +"}";
+            response = "{\"Status\": \"Playing\", \"Message\":\"" + currGameState + "\"}";
             sendHttpResponse(writer, 200, "application/json", response);
         }
         // Else it is either a page reload (even with JS enabled) or JS is disabled (POST request)
