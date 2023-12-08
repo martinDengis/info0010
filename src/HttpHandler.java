@@ -29,6 +29,7 @@ public class HttpHandler implements Runnable {
     private String guess = "";
     private char[] buffer = null;
     private final Map<String, String> headers = new HashMap<String, String>();
+    private String method;
 
     public HttpHandler(int serverID, Socket clientSocket) {
         this.serverID = serverID;
@@ -179,11 +180,12 @@ public class HttpHandler implements Runnable {
      */
     public boolean headersCheck(PrintWriter writer) {
         // Retrieve content length
-        if (!headers.containsKey("Content-Length")) {
+        if (!headers.containsKey("Content-Length") && !this.method.equals("GET") && !this.method.equals("HEAD")) {
             // Content-Length header not found
             sendErrorResponse(writer, 411);
             return false;
-        } else {
+        } 
+        else if (headers.containsKey("Content-Length")) {
             int length = Integer.parseInt(headers.get("Content-Length"));
             this.buffer = new char[length];
         }
@@ -261,11 +263,11 @@ public class HttpHandler implements Runnable {
     public void pleaseRespond(PrintWriter writer, int currAttempt, boolean isJSandGuess) {
         // Process the request
         HTML htmlGenerator = new HTML();
-        String colorPattern = responseBuilder(this.guess);
         String response;
-
+        
         if(isJSandGuess) {
             // Update game state
+            String colorPattern = responseBuilder(this.guess);
             WordleServer.addGameState(this.sessionID, this.guess, colorPattern);
 
             // Retrieve the current game state -> 1:guess:color
@@ -292,7 +294,10 @@ public class HttpHandler implements Runnable {
         }
         else {
             // Update game state
-            WordleServer.addGameState(this.sessionID, this.guess, colorPattern);
+            if (this.isRequestGuess) {
+                String colorPattern = responseBuilder(this.guess);
+                WordleServer.addGameState(this.sessionID, this.guess, colorPattern);
+            }
 
             // Retrieve the full game state
             // -1:secret:secret;0:guess:color;1:guess:color;2:guess:color;3:guess:color;4:guess:color;5:guess:color;
@@ -379,7 +384,8 @@ public class HttpHandler implements Runnable {
         String statusMessage = getStatusMessage(statusCode);
 
         HTML htmlGenerator = new HTML();
-        String error = htmlGenerator.generateErrorPage(statusCode);
+        // String error = htmlGenerator.generateErrorPage(statusCode);
+        String error = "error" + String.valueOf(statusCode);
 
         writer.println("HTTP/1.1 " + statusCode + " " + statusMessage);
         writer.println("Content-Type: text/plain");
@@ -397,7 +403,10 @@ public class HttpHandler implements Runnable {
      * @param method the HTTP method to check
      * @return true if the method is allowed, false otherwise
      */
-    private boolean isMethodAllowed(String method) { return HttpMethod.isMethodAllowed(method); }
+    private boolean isMethodAllowed(String method) {
+        this.method = method; 
+        return HttpMethod.isMethodAllowed(method); 
+    }
 
     /**
      * Checks if the given URI is valid.
@@ -457,6 +466,8 @@ public class HttpHandler implements Runnable {
      * @return the response string indicating the correctness of each letter in the guess
      */
     private String responseBuilder(String guess) {
+        if (guess == null) return null;
+
         // Initialise response and tracking arrays
         char[] pattern = new char[5];
         boolean[] usedInGuess = new boolean[5];

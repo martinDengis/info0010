@@ -458,17 +458,17 @@ public class HTML {
                 "}" ;
     }
    
-    public static void main(String[] args) {
-        String gameState = "-1:secret:secret;0:loose:BGYGY;1:house:GGGBG;2::;3::;4::;5::";
-        //String gameState = "-1:secret:secret;0::;1::;2::;3::;4::;5::";
+    // public static void main(String[] args) {
+    //     String gameState = "-1:secret:secret;0:loose:BGYGY;1:house:GGGBG;2::;3::;4::;5::";
+    //     //String gameState = "-1:secret:secret;0::;1::;2::;3::;4::;5::";
 
-        HTML htmlGenerator = new HTML();
-        String content = htmlGenerator.generateWordlePage(gameState);
+    //     HTML htmlGenerator = new HTML();
+    //     String content = htmlGenerator.generateWordlePage(gameState);
 
-        try (FileWriter fileWriter = new FileWriter("wordle.html")) {
-            fileWriter.write(content);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+    //     try (FileWriter fileWriter = new FileWriter("wordle.html")) {
+    //         fileWriter.write(content);
+    //     } catch (IOException e) {
+    //         e.printStackTrace();
+    //     }
+    // }
 }
