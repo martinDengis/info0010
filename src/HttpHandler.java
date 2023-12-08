@@ -24,9 +24,9 @@ public class HttpHandler implements Runnable {
     private char[] buffer;
     private boolean isChunked;
     private boolean isRequestGuess;
-    private String uri;
     private String guess;
-    private boolean isGETmethod; 
+    private boolean isJavaScriptEnabled;
+    private int rowID;
 
     public HttpHandler(int serverID, Socket clientSocket) {
         this.serverID = serverID;
@@ -37,9 +37,9 @@ public class HttpHandler implements Runnable {
         this.isChunked = false;
         this.headers = new HashMap<String, String>();
         this.isRequestGuess = false;
-        this.uri = "";
         this.guess = "";
-        this.isGETmethod = true;
+        this.isJavaScriptEnabled = true;
+        this.rowID = -1; // -1 means no rowID (initial state)
     }
 
     /**
@@ -76,10 +76,10 @@ public class HttpHandler implements Runnable {
      * @param writer      The PrintWriter used to send the HTTP response.
      * @return true if the request was successfully handled, false otherwise.
      */
-    private boolean handleRequest(String requestLine, BufferedReader reader, PrintWriter writer) {
+    private void handleRequest(String requestLine, BufferedReader reader, PrintWriter writer) {
         // Validate the HTTP request format
         boolean success = formatCheck(requestLine, reader, writer);
-        if (!success) return false;
+        if (!success) return;
 
         // At this point, if no session ID was found, we generate a new one
         if (this.sessionID.isEmpty()) {
@@ -87,40 +87,54 @@ public class HttpHandler implements Runnable {
             this.sessionID = UUID.randomUUID().toString();
 
             // Create a new entry in the sessions mapping
-            SessionData sessionData = new SessionData(600, generateSecretWord());
+            SessionData sessionData = new SessionData(generateSecretWord());
             WordleServer.addSession(this.sessionID, sessionData);
         }
 
-        int currAttempt = WordleServer.getSessionData(this.sessionID).getAttempts();
-        if (currAttempt == 5) { return false; }
+        int currAttempt = WordleServer.getSessionData(this.sessionID).getAttempt();
+        if (currAttempt > 5) {
+            sendHttpResponse(writer, 200, "application/json", "{\"Status\": \"Gameover\", \"Message\":" + WordleServer.getSecretWord(this.sessionID) +"}");
+        };
 
         // Read the HTTP request body
         // String body = getBody(reader); // what to do with body ? what is body ?
 
         // Process the HTTP request
         HTML htmlGenerator = new HTML();
-        String colorPattern;
         String response;
 
-        // Check if JavaScript is enabled
-        if (this.isGETmethod) {
-            if (this.isRequestGuess) {
-                colorPattern = responseBuilder(this.guess);
-                WordleServer.addGamestate(this.sessionID, this.guess, colorPattern);
-                String currGameState = WordleServer.getCurrGameState(this.sessionID);   // 1:guess:color
-                response = currGameState;
+        // Check if JavaScript is enabled && if the request is a guess
+        if (isJavaScriptEnabled && isRequestGuess) {
+            String colorPattern = responseBuilder(this.guess);
+            WordleServer.addGamestate(this.sessionID, this.guess, colorPattern);
+            String currGameState = WordleServer.getCurrGameState(this.sessionID);   // 1:guess:color
+
+            // Check if winning state
+            if (colorPattern.equals("GGGGG")) {
+                response = "{\"Status\": \"Win\", \"Message\":" + WordleServer.getSecretWord(this.sessionID) +"}";
+                sendHttpResponse(writer, 200, "application/json", response);
+                return;
             }
+
+            // Check if the current attempt is the last attempt
+            if (currAttempt == 5) {
+                response = "{\"Status\": \"Gameover\", \"Message\":" + WordleServer.getSecretWord(this.sessionID) +"}";
+                sendHttpResponse(writer, 200, "application/json", response);
+                return;
+            }
+
+            response = "{\"Status\": \"Playing\", \"Message\":" + currGameState +"}";
+            sendHttpResponse(writer, 200, "application/json", response);
         }
-        // JavaScript disabled -> POST method requires regenerating whole page
+        // Else it is either a page reload (even with JS enabled) or JS is disabled (POST request)
         else {
             String fullGameState = WordleServer.getFullGameState(this.sessionID);   
             // 0:guess:color;1:guess:color;2:guess:color;3:guess:color;4:guess:color;5:guess:color;
             response = htmlGenerator.generateWordlePage(fullGameState);
-        }
 
-        // Send the HTTP response
-        sendHttpResponse(writer, 200, "text/html", response);
-        return true;
+            // Send the HTTP response
+            sendHttpResponse(writer, 200, "text/html", response);
+        }
     }
 
     /**
@@ -147,12 +161,11 @@ public class HttpHandler implements Runnable {
                 } else {
                     // Extract the header name and value
                     String[] header = line.split(": ", 2);
-                    this.headers.put(header[0], header[1]);
+                    headers.put(header[0], header[1]);
                 }
             }
 
             return headersCheck(writer);
-
         } catch (IOException e) { 
             e.printStackTrace(); 
             return false;
@@ -187,10 +200,7 @@ public class HttpHandler implements Runnable {
             }
             
             // Check if the URI is valid
-            if (!isURIValid(uri, writer)) {
-                sendErrorResponse(writer, 404);
-                return false;
-            }
+            if (!isURIValid(uri, writer)) return false;
 
             // Check if the HTTP version is supported
             if (!version.equals("HTTP/1.1")) {
@@ -208,9 +218,8 @@ public class HttpHandler implements Runnable {
      * @return true if the method is allowed, false otherwise
      */
     private boolean isMethodAllowed(String method) {
-        if (method.equals("GET")) this.isGETmethod = true;
-        else if (method.equals("POST")) this.isGETmethod = false;
-        else return false; 
+        ArrayList<String> allowedMethods = new ArrayList<>(Arrays.asList("GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS"));
+        if (!allowedMethods.contains(method)) return false;
 
         return true;
     }
@@ -222,18 +231,21 @@ public class HttpHandler implements Runnable {
      * @return true if the URI is valid, false otherwise
      */
     private boolean isURIValid(String uri, PrintWriter writer) {
-        if(uri.matches("^/$"))
-            sendErrorResponse(writer, 303);
-        else if (uri.matches("^/play\\.html$")) {
-            this.uri = uri;
+        if(uri.matches("^/$")) {
+            sendErrorResponse(writer, 303); // Redirect to /play.html
             return true;
         }
+        else if (uri.matches("^/play\\.html$")) return true;
         else if (uri.matches("^/play\\.html/guess\\?word=[a-z]{5}$")) {
-            this.uri = uri;
             this.isRequestGuess = true;
             this.guess = uri.split("=")[1].toLowerCase();
-            
-            return isExistent(this.guess);
+
+            if (!isGuessValid(this.guess)) {
+                String response = "{\"Status\": \"Invalid\", \"Message\": \"error\"}";
+                sendHttpResponse(writer, 200, "application/json", response);
+                return false;
+            }
+            return true;
         }
         
         return false;
@@ -247,42 +259,63 @@ public class HttpHandler implements Runnable {
      */
     public boolean headersCheck(PrintWriter writer) {
         // Retrieve content length
-        if (!this.headers.containsKey("Content-Length")) {
+        if (!headers.containsKey("Content-Length")) {
             // Content-Length header not found
             sendErrorResponse(writer, 411);
             return false;
         } else {
-            int length = Integer.parseInt(this.headers.get("Content-Length"));
+            int length = Integer.parseInt(headers.get("Content-Length"));
             this.buffer = new char[length];
         }
 
-        if (this.headers.get("Transfer-Encoding") != null && this.headers.get("Transfer-Encoding").contains("chunked"))
+        if (headers.get("Transfer-Encoding") != null && headers.get("Transfer-Encoding").contains("chunked"))
             this.isChunked = true;
 
         // Process headers in search of existing session
-        if (this.headers.containsKey("Cookie")) {
+        if (headers.containsKey("Cookie")) {
             // Extract the session ID from the Cookie header
-            String[] session = this.headers.get("Cookie").split("=", 2);
+            String[] session = headers.get("Cookie").split("=", 2);
             this.sessionID = session[1];
 
             // Check if the session ID is valid
-            if (!this.sessionID.matches("^[0-9a-f\\-]+$")) {
+            if (!sessionID.matches("^[0-9a-f\\-]+$") || !WordleServer.hasSession(this.sessionID)) {
                 // Invalid session ID
                 sendErrorResponse(writer, 400);
                 return false;
-            } 
-            // Check if the session ID is known
-            else if (!WordleServer.hasSession(this.sessionID)) {
-                // Session ID not found
-                sendErrorResponse(writer, 400);
-                return false;
+            }
+
+            // Check that session has not expired
+            WordleServer.getSessionData(this.sessionID).updateLastActivityTime();
+            if(WordleServer.getSessionData(this.sessionID).isExpired()) {
+                WordleServer.removeSession(this.sessionID);
+                this.sessionID = "";
             }
         }
 
-        if (this.headers.containsKey("X-Requested-With")) {
-            // Check if the request is an AJAX request
-            if (!this.headers.get("X-Requested-With").equals("XMLHttpRequest")) {
-                // Invalid request format
+        // Check if JavaScript is enabled
+        if (headers.containsKey("JS-Enabled") && headers.get("JS-Enabled").equals("false"))
+            this.isJavaScriptEnabled = false;
+
+        // Check if the request is an AJAX request
+        if (headers.containsKey("X-Requested-With") && !headers.get("X-Requested-With").equals("XMLHttpRequest")) {
+            // Invalid request format
+            sendErrorResponse(writer, 400);
+            return false;
+        }
+
+        if (headers.containsKey("Row")) {
+            String row = headers.get("Row");
+            try {
+                this.rowID = Integer.parseInt(row);
+                if (rowID != -1 && !sessionID.isEmpty()) {
+                    // Check that the rowID match current attempt
+                    if (rowID != WordleServer.getSessionData(this.sessionID).getAttempt()) {
+                        sendErrorResponse(writer, 400);
+                        return false;
+                    }
+                } 
+            } 
+            catch (NumberFormatException e) {
                 sendErrorResponse(writer, 400);
                 return false;
             }
@@ -291,7 +324,13 @@ public class HttpHandler implements Runnable {
         return true;
     }
 
-    private boolean isExistent(String guess) {
+    /**
+     * Checks if a given word is a valid 5-letter word that exists in the WordleWordSet.
+     * 
+     * @param guess the word to be checked
+     * @return true if the word is valid and exists, false otherwise
+     */
+    private boolean isGuessValid(String guess) {
         // Check if the word is a valid 5-letter word and exists
         return guess.length() == 5 && WordleWordSet.WORD_SET.contains(guess);
     }
@@ -369,7 +408,7 @@ public class HttpHandler implements Runnable {
         Map<String, String> responseHeaders = new HashMap<String, String>();
         responseHeaders.put("Date", new Date().toString());
         responseHeaders.put("Server", String.valueOf(this.serverID));
-        if (this.newSession) responseHeaders.put("Set-Cookie", "SESSID=" + this.sessionID + "; path=/");
+        if (this.newSession) responseHeaders.put("Set-Cookie", "SESSID=" + this.sessionID + "; path=/; Max-Age=600");
 
         String statusMessage = getStatusMessage(statusCode);
 
@@ -379,8 +418,6 @@ public class HttpHandler implements Runnable {
         // Send additional headers : namely Date and Server ID
         for (Map.Entry<String, String> header : responseHeaders.entrySet())
             writer.println(header.getKey() + ": " + header.getValue());
-
-        writer.println(WordleServer.getSessionData(this.sessionID));
 
         writer.println();
         writer.println(content);
@@ -402,9 +439,9 @@ public class HttpHandler implements Runnable {
         writer.println("HTTP/1.1 " + statusCode + " " + statusMessage);
         writer.println("Content-Type: text/plain");
         writer.println("Content-Length: 0");
-        if (statusCode == 303) writer.println("Location: http://localhost:8010/play.html"); // à revoir
-        writer.println(error);
+        if (statusCode == 303) writer.println("Location: http://localhost:8008/play.html");
         writer.println();
+        writer.println(error);
         writer.flush();
     }
 
@@ -453,11 +490,13 @@ public class HttpHandler implements Runnable {
         char[] pattern = new char[5];
         boolean[] usedInGuess = new boolean[5];
         boolean[] usedInSecret = new boolean[5];
-        String secret = WordleServer.getSecretWord(this.sessionID);
+
+        String _secret = WordleServer.getSecretWord(this.sessionID).toLowerCase();
+        String _guess = guess.toLowerCase();
     
         // GREEN: Mark well-placed letters
         for (int i = 0; i < 5; i++) {
-            if (guess.charAt(i) == secret.charAt(i)) {
+            if (_guess.charAt(i) == _secret.charAt(i)) {
                 pattern[i] = 'G';
                 usedInGuess[i] = usedInSecret[i] = true;
             }
@@ -467,7 +506,7 @@ public class HttpHandler implements Runnable {
         for (int i = 0; i < 5; i++) {
             if (!usedInGuess[i]) {
                 for (int j = 0; j < 5; j++) {
-                    if (!usedInSecret[j] && guess.charAt(i) == secret.charAt(j)) {
+                    if (!usedInSecret[j] && _guess.charAt(i) == _secret.charAt(j)) {
                         pattern[i] = 'Y';
                         usedInGuess[i] = usedInSecret[j] = true;
                         break;

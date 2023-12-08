@@ -4,16 +4,16 @@ import java.util.List;
 import java.util.Map;
 
 public class SessionData {
-    private int maxAge;
-    private int attempt;
+    private int attempt = 0;
     private final String secretWord;
     private final Map<Integer, List<String>> gameState;
+    private static final int SESSION_TIMEOUT_SECONDS = 600; // 10 minutes
+    private long lastActivityTime; 
 
-    public SessionData(int maxAge, String secretWord) {
-        this.maxAge = maxAge;
-        this.attempt = 0;
+    public SessionData(String secretWord) {
         this.secretWord = secretWord;
         this.gameState = new HashMap<Integer, List<String>>();
+        this.lastActivityTime = System.currentTimeMillis(); // Set the initial last activity time
         for (int i = 0; i < 6; i++) {
             List<String> data = new ArrayList<String>();
             data.add(""); // initial guess
@@ -22,9 +22,14 @@ public class SessionData {
         }
     }
 
-    public int getMaxAge() { return maxAge; }
-    public int getAttempts() { return attempt; }
+    public int getAttempt() { return attempt; }
     public String getSecretWord() { return secretWord; }
+    public void updateLastActivityTime() { this.lastActivityTime = System.currentTimeMillis(); }
+    public boolean isExpired() {
+        long currentTime = System.currentTimeMillis();
+        long elapsedTime = currentTime - lastActivityTime;
+        return elapsedTime > (SESSION_TIMEOUT_SECONDS * 1000); // Convert seconds to milliseconds
+    }
 
     public List<String> getGuessandColor(int attempt) { return gameState.get(attempt); }
     public String getGuess(int attempt) { return gameState.get(attempt).get(0); }
@@ -44,7 +49,6 @@ public class SessionData {
         return this.attempt + ":" + data.get(0) + ":" + data.get(1);
     }
 
-    public void setMaxAge(int maxAge) {this.maxAge = maxAge; }
     public void incrementAttempts() { this.attempt++; }
     public void resetAttempts() { this.attempt = 0; }
     public void addGamestate(String guess, String color) {

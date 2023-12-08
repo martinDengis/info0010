@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class WordleServer {
     private static final int SERVER_ID = new Random().nextInt(9999);
     private static final int PORT = 8008;
-    private static final Map<String, SessionData> sessions = new ConcurrentHashMap<>(); // ConcurrentHashMap ensures thread safety
+    private static final Map<String, SessionData> SESSIONS = new ConcurrentHashMap<>(); // ConcurrentHashMap ensures thread safety
 
     public static void main(String[] args) {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
@@ -36,18 +36,18 @@ public class WordleServer {
 
     public static int getServerID() { return SERVER_ID; }
 
-    // Methods to manage sessions mapping
+    // Methods to manage SESSIONS mapping
     public static void addSession(String id, SessionData session) {
         if (id == null || session == null)
             throw new IllegalArgumentException("Neither id nor session can be null");
 
-        sessions.put(id, session);
+        SESSIONS.put(id, session);
     }
-    public static SessionData getSessionData(String id) { return sessions.get(id); }
-    public static String getFullGameState(String id) { return sessions.get(id).getFullGameState(); }
-    public static String getCurrGameState(String id) { return sessions.get(id).getCurrGameState(); }
-    public static void removeSession(String id) { sessions.remove(id); }
-    public static boolean hasSession(String id) { return sessions.containsKey(id); }
-    public static String getSecretWord(String id) { return sessions.get(id).getSecretWord(); }
-    public static void addGamestate(String id, String guess, String color) { sessions.get(id).addGamestate(guess, color); }
+    public static SessionData getSessionData(String id) { return SESSIONS.get(id); }
+    public static String getFullGameState(String id) { return SESSIONS.get(id).getFullGameState(); }
+    public static String getCurrGameState(String id) { return SESSIONS.get(id).getCurrGameState(); }
+    public static void removeSession(String id) { SESSIONS.remove(id); }
+    public static boolean hasSession(String id) { return SESSIONS.containsKey(id); }
+    public static String getSecretWord(String id) { return SESSIONS.get(id).getSecretWord(); }
+    public static void addGamestate(String id, String guess, String color) { SESSIONS.get(id).addGamestate(guess, color); }
 }
