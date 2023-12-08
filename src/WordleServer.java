@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class WordleServer {
     private static final int SERVER_ID = new Random().nextInt(9999);
     private static final int PORT = 8008;
+    private static final int MAX_CHUNCK_SIZE = 128;
     private static final Map<String, SessionData> SESSIONS = new ConcurrentHashMap<>(); // ConcurrentHashMap ensures thread safety
 
     public static void main(String[] args) {
@@ -35,6 +36,8 @@ public class WordleServer {
     }
 
     public static int getServerID() { return SERVER_ID; }
+    public static int getPort() { return PORT; }
+    public static int getMaxChunckSize() { return MAX_CHUNCK_SIZE; }
 
     // Methods to manage SESSIONS mapping
     public static void addSession(String id, SessionData session) {
