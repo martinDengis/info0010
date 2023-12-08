@@ -2,13 +2,21 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 public class HTML {
-    public String generateWordlePage(String gameState) { // TODO + TODO generateErrorPage(getStatusMessage)
+    public String generateWordlePage(String gameState) { // TODO generateErrorPage(getStatusMessage)
         String title = "Wordle Game";
         String header = "<header><img src=\"logo.png\" alt=\"WORDLE\"></header>"; // TODO BIT64
         
         String wordleBoard = "";
-        // Check if it's a new game or a returning player
-        if (gameState.equals("0::;1::;2::;3::;4::;5::")) {
+        boolean isNewGame = true;
+        String[] parts = gameState.split(";");
+        for (int i = 1; i < parts.length; i++) { // Start from index 1 to skip the secret word
+            if (!parts[i].equals("::")) {
+                isNewGame = false;
+                break;
+            }
+        }
+
+        if (isNewGame) {
             wordleBoard = generateWordleBoard(); // For a new game
         } else {
             wordleBoard = generateWordleBoardWithState(gameState); // For a returning player
@@ -17,6 +25,14 @@ public class HTML {
         String keyboard = generateKeyboard();
         String styles = generateStyles();
         String fallbackForm = fallbackForm();
+
+        String modalHtml = 
+                            "<div id='gameModal' class='modal'>" +
+                            "   <div class='modal-content'>" +
+                            "       <span class='close'>&times;</span>" +
+                            "       <p id='modalText'></p>" +
+                            "   </div>" +
+                            "</div>";
 
         String removeLastLetterFunction = 
                             "function removeLastLetter() {" +
@@ -76,28 +92,42 @@ public class HTML {
         String sendGuess = 
                             "function sendGuess(guess) {" +
                             "    console.log('Sending guess:', guess, 'Row:', currentRow);" + // Console log for debugging
-                            "    fetch(`/submit-guess?word=${guess}`, {" +
+                            "    fetch(`guess?word=${guess}`, {" +
                             "        method: 'GET'," +
                             "        headers: {" +
                             "            'Row': currentRow.toString()," +
                             "            'Content-Type': 'application/json'," +
                             "            'JS-Enabled': isJSEnabled.toString()" +
-                           "         }" +
-                            "    })" +
-                            "    .then(response => response.text())" + // Processing text response
-                            "    .then(data => {" +
-                            "        const parts = data.split(':');" +
-                            "        const feedback = parts[2];" + // Extracting the colour feedback
-                            "        if (feedback === 'error') {" +
-                            "            alert('The guessed word does not exist or an error occurred.');" +
-                            "        } else {" +
-                            "            updateBoardWithFeedback(feedback);" +
                             "        }" +
                             "    })" +
+                            "    .then(response => response.json())" + // Processing text response
+                            "    .then(processServerResponse)" +
                             "    .catch(error => {" +
                             "        console.error('Error:', error);" +
                             "        alert('An error occurred while submitting the guess.');" +
                             "    });" +
+                            "}";
+
+        String processServerResponse =
+                            "function processServerResponse(data) {"+
+                            "   var response = JSON.parse(data);" + // Assuming 'data' is a JSON string from the server
+                            "   switch(response.Status) {" +
+                            "       case 'Invalid':" +
+                            "           alert(response.Message);" +
+                            "           break;" +
+                            "       case 'Gameover':" +
+                            "           userLost(response.Message);" +
+                            "           break;" +
+                            "       case 'Win':" +
+                            "           userWon(response.Message);" +
+                            "           break;" +
+                            "       case 'Playing':" +
+                            "           var parts = response.Message.split(':');" +
+                            "           updateBoardWithFeedback(parts[2]);"+ // Assuming the feedback is in the third part
+                            "           break;" +
+                            "       default:" +
+                            "           console.error('Unknown status from server');" +
+                            "    }"+
                             "}";
 
         String updateBoardWithFeedback =
@@ -124,29 +154,41 @@ public class HTML {
                             "            }" +
                             "        }" +
                             "    }" +
-                            "    var modal = document.getElementById('modal');" +
-                            "    var span = document.getElementsByClassName('close')[0];" +
-                            "    var modalText = document.getElementById('modal-text');" +
-                            "    if (feedback === 'GGGGG') {" +
-                            "        modalText.innerHTML = 'Congratulations, You Won!';" +
-                            "        modal.style.display = 'block';" +
-                            "    } else if (currentRow >= 5) {" +
-                            "        modalText.innerHTML = 'Game Over! The correct word was: [CORRECT WORD]';" + // TODO correct word
-                            "        modal.style.display = 'block';" +
-                            "    }" +
-                            "    span.onclick = function() {" +
-                            "        modal.style.display = 'none';" +
-                            "    }" +
-                            "    window.onclick = function(event) {" +
-                            "        if (event.target === modal) {" +
-                            "            modal.style.display = 'none';" +
-                            "        }" +
-                            "    }"+ 
                             "    currentRow++;" + // Prepare for the next guess
                             "}";
         
+        String showModalFunction =
+                            "function showModal(message) {" +
+                            "  var gameModal = document.getElementById('gameModal');" +
+                            "  var modalText = document.getElementById('modalText');" +
+                            "  modalText.textContent = message;" +
+                            "  gameModal.style.display = 'block';" +
+                            "}";
+                        
+        String userWonFunction =
+                            "function userWon() {" +
+                            "  showModal('YOU WON!');" +
+                            "}";
+                        
+        String userLostFunction =
+                            "function userLost(secretWord) {" +
+                            "  showModal('GAME OVER. Secret word = ' + secretWord);" +
+                            "}";
+                        
+        String closeModalFunction =
+                            "var span = document.getElementsByClassName('close')[0];" +
+                            "span.onclick = function() {" +
+                            "  var gameModal = document.getElementById('gameModal');" +
+                            "  gameModal.style.display = 'none';" +
+                            "};";
+                        
+        // String restartGameFunction =
+        //                     "function restartGame() {" +
+        //                     "  // Code to reset the game goes here" +
+        //                     "}";
+                        
+
         String script = "<script>" +
-                        keydownEventListener + 
                         "function fillCell(key) {" +
                         "    if (currentCell < 5) {" +
                         "        const cell = document.getElementById(`cell-${currentRow}-${currentCell}`);" +
@@ -164,9 +206,16 @@ public class HTML {
                         removeLastLetterFunction +
                         onEraseFunction + 
                         keyPressedFunction +
-                        onSubmitGuess + 
+                        showModalFunction+
+                        userWonFunction +
+                        userLostFunction +
+                        processServerResponse +
                         sendGuess +
+                        onSubmitGuess + 
                         updateBoardWithFeedback +
+                        closeModalFunction + 
+                        //restartGameFunction +
+                        keydownEventListener +
                         "document.addEventListener('DOMContentLoaded', (event) => {" + // Fallback form
                         "  var fallbackForm = document.getElementById('fallbackForm');" +
                         "  if (fallbackForm) {" +
@@ -189,13 +238,7 @@ public class HTML {
             "<div id=\"wordle-board\">" + wordleBoard + "</div>\n" +
             "<div id=\"keyboard\">" + keyboard + "</div>\n" +
             fallbackForm +
-            "<div id=\"modal\" class=\"modal\">" +
-            "    <div class=\"modal-content\">" +
-            "        <span class=\"close\">&times;</span>" +
-            "        <p id=\"modal-text\">Some Text</p>" +
-            "        <button onclick=\"restartGame()\">restart</button>" +
-            "    </div>" +  
-            "</div>" +
+            modalHtml +
             script +
             "</body>\n" +
             "</html>";
@@ -221,21 +264,29 @@ public class HTML {
         StringBuilder boardBuilder = new StringBuilder();
         String[] tries = gameState.split(";");
         int lastFilledRow = -1;
+        boolean gameEnded = false;
+        boolean playerWon = false;
+        String secretWord = "";
     
         for (int i = 0; i < tries.length; i++) {
             String[] parts = tries[i].split(":");
             String guess = (parts.length > 1) ? parts[1].toUpperCase() : "";
             String color = (parts.length > 2) ? parts[2] : "";
     
-            boardBuilder.append("<div class=\"word-row\" id=\"row-").append(i).append("\">");
+            if (i == 0) { // Handling the secret word
+                secretWord = parts[2]; // Assuming the secret word is always present
+                continue; // Skip further processing for the secret word row
+            }
+
+            boardBuilder.append("<div class=\"word-row\" id=\"row-").append(i-1).append("\">");
     
             if (guess.isEmpty()) {
                 // Generate empty cells for the row
                 for (int j = 0; j < 5; j++) {
-                    boardBuilder.append("<div class=\"word-cell\" id=\"cell-").append(i).append("-").append(j).append("\"></div>");
+                    boardBuilder.append("<div class=\"word-cell\" id=\"cell-").append(i-1).append("-").append(j).append("\"></div>");
                 }
             } else {
-                lastFilledRow = i;
+                lastFilledRow = i-1;
                 // Generate cells with guesses and color
                 for (int j = 0; j < guess.length(); j++) {
                     char letter = guess.charAt(j);
@@ -244,7 +295,7 @@ public class HTML {
                     boardBuilder.append("<div class=\"word-cell ")
                              .append(colorClass)
                              .append("\" id=\"cell-")
-                             .append(i)
+                             .append(i-1)
                              .append("-")
                              .append(j)
                              .append("\">")
@@ -252,9 +303,27 @@ public class HTML {
                              .append("</div>");
                 }
             }
+
             boardBuilder.append("</div>");
+
+            // Check for win condition
+            if (color.equals("GGGGG")) {
+                gameEnded = true;
+                playerWon = true;
+            }
         }
     
+        if (!gameEnded && lastFilledRow == 5) {
+            gameEnded = true;
+        }
+
+        if (gameEnded) {
+            String modalMessage = playerWon ? "Congratulations, You Won!" : "Game Over. The correct word was: " + secretWord;
+            boardBuilder.append("<div class=\"modal\" style=\"display: block;\">")
+                        .append("<p>").append(modalMessage).append("</p>")
+                        .append("</div>");
+        }
+
         // Update currentRow and currentGuess in the script
         String scriptUpdate = "<script>let currentRow = " + (lastFilledRow + 1) + "; let currentGuess = ''; let currentCell = 0;</script>";
     
@@ -390,8 +459,8 @@ public class HTML {
     }
    
     public static void main(String[] args) {
-        String gameState = "0:loose:BGYGY;1:house:GGGGG;2::;3::;4::;5::";
-        //String gameState = "0::;1::;2::;3::;4::;5::";
+        String gameState = "-1:secret:secret;0:loose:BGYGY;1:house:GGGBG;2::;3::;4::;5::";
+        //String gameState = "-1:secret:secret;0::;1::;2::;3::;4::;5::";
 
         HTML htmlGenerator = new HTML();
         String content = htmlGenerator.generateWordlePage(gameState);
@@ -403,4 +472,3 @@ public class HTML {
         }
     }
 }
-
