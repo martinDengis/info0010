@@ -52,7 +52,6 @@ public class HttpHandler implements Runnable {
 
             // Process the request
             handleRequest(requestLine, reader, writer);
-            // if (!success) sendErrorResponse(writer, 501);
 
             reader.close();
             writer.close();
@@ -74,7 +73,7 @@ public class HttpHandler implements Runnable {
         boolean success = formatCheck(requestLine, reader, writer);
         if (!success) return;
 
-        // At this point, if no session ID was found, we generate a new one
+        // At this point, if no session ID was found, we generate a new session
         if (this.sessionID.isEmpty()) {
             this.newSession = true;
             this.sessionID = UUID.randomUUID().toString();
@@ -84,6 +83,7 @@ public class HttpHandler implements Runnable {
             WordleServer.addSession(this.sessionID, sessionData);
         }
 
+        // Check if the game is over
         int currAttempt = WordleServer.getSessionData(this.sessionID).getAttempt();
         if (currAttempt > 5) {
             WordleServer.getSessionData(this.sessionID).setStatus("Gameover");
@@ -91,15 +91,18 @@ public class HttpHandler implements Runnable {
             sendHttpResponse(writer, 200, "application/json", response);
         };
 
-        // Read the HTTP request body
-        // String body = getBody(reader); // what to do with body ? what is body ?
+        // Check if JavaScript is enabled && if the request is a guess
+        // Else it is either a page reload (even with JS enabled) or JS is disabled (POST request)
+        if (isJavaScriptEnabled && isRequestGuess) { pleaseRespond(writer, currAttempt, true); }
+        else { pleaseRespond(writer, currAttempt, false); }    
+    }
 
-        // Process the HTTP request
+    public void pleaseRespond(PrintWriter writer, int currAttempt, boolean isJSandGuess) {
+        // Process the request
         HTML htmlGenerator = new HTML();
         String response;
 
-        // Check if JavaScript is enabled && if the request is a guess
-        if (isJavaScriptEnabled && isRequestGuess) {
+        if(isJSandGuess) {
             // Update game state
             String colorPattern = responseBuilder(this.guess);
             WordleServer.addGameState(this.sessionID, this.guess, colorPattern);
@@ -126,7 +129,6 @@ public class HttpHandler implements Runnable {
             response = "{\"Status\": \"Playing\", \"Message\":\"" + currGameState + "\"}";
             sendHttpResponse(writer, 200, "application/json", response);
         }
-        // Else it is either a page reload (even with JS enabled) or JS is disabled (POST request)
         else {
             // Update game state
             String colorPattern = responseBuilder(this.guess);
@@ -167,8 +169,9 @@ public class HttpHandler implements Runnable {
                 if (!line.matches("^[^:]+: .*$")) {
                     sendErrorResponse(writer, 400);
                     return false;
-                } else {
-                    // Extract the header name and value
+                } 
+                // Extract the header name and value
+                else {
                     String[] header = line.split(": ", 2);
                     headers.put(header[0], header[1]);
                 }
@@ -183,6 +186,7 @@ public class HttpHandler implements Runnable {
 
     /**
      * Validates the format of the HTTP request line.
+     * Called by formatCheck method.
      * 
      * @param requestLine The HTTP request line.
      * @param reader      The BufferedReader to read the HTTP headers.
@@ -222,6 +226,7 @@ public class HttpHandler implements Runnable {
 
     /**
      * Checks if the given HTTP method is allowed.
+     * Called by requestLineCheck.
      *
      * @param method the HTTP method to check
      * @return true if the method is allowed, false otherwise
@@ -235,6 +240,7 @@ public class HttpHandler implements Runnable {
 
     /**
      * Checks if the given URI is valid.
+     * Called by requestLineCheck method.
      *
      * @param uri the URI to check
      * @return true if the URI is valid, false otherwise
@@ -262,6 +268,7 @@ public class HttpHandler implements Runnable {
  
     /**
      * Checks the headers of the HTTP request.
+     * Called by formatCheck method.
      * 
      * @param writer the PrintWriter used to send the response
      * @return true if the headers are valid, false otherwise
