@@ -13,12 +13,13 @@ public class HTML {
         String wordleBoard = "";
         boolean isNewGame = true;
         String[] parts = gameState.split(";");
-        for (int i = 1; i < parts.length; i++) { // Start from index 1 to skip the secret word
-            if (!parts[i].equals("::")) {
-                isNewGame = false;
-                break;
-            }
-        }
+        if (parts[1].equals("0::")) isNewGame = true;
+        // for (int i = 1; i < parts.length; i++) { // Start from index 1 to skip the secret word
+        //     if (!parts[i].equals(i-1+"::")) {
+        //         isNewGame = false;
+        //         break;
+        //     }
+        // }
 
         if (isNewGame) {
             wordleBoard = generateWordleBoard(); // For a new game
@@ -93,16 +94,18 @@ public class HTML {
                             "    removeLastLetter();" +
                             "}";
 
-        String sendGuess = 
+        String sendGuess =                             
                             "function sendGuess(guess) {" +
+                            "    const isJSEnabled = typeof window.addEventListener === 'function';" +
+                            "    const headers = new Headers({"+
+                            "        'Content-Type': 'application/json',"+
+                            "        'JS-Enabled': isJSEnabled.toString(),"+
+                            "        'Row': currentRow.toString()"+
+                            "    });"+
                             "    console.log('Sending guess:', guess, 'Row:', currentRow);" + // Console log for debugging
                             "    fetch(`guess?word=${guess}`, {" +
                             "        method: 'GET'," +
-                            "        headers: {" +
-                            "            'Row': currentRow.toString()," +
-                            "            'Content-Type': 'application/json'," +
-                            "            'JS-Enabled': isJSEnabled.toString()" +
-                            "        }" +
+                            "        headers: headers" +
                             "    })" +
                             "    .then(response => response.json())" + // Processing text response
                             "    .then(processServerResponse)" +
@@ -234,7 +237,8 @@ public class HTML {
             "<head>\n" +
             "<meta charset=\"UTF-8\">\n" +
             "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
-            "<title>" + title + "</title>\n" +
+            "<link rel=\"icon\" type=\"image/x-icon\" href=\"data:image/x-icon;,\">\n" + // Empty favicon
+            "<title>WordleGame</title>\n" +
             "<style>" + styles + "</style>\n" +
             "</head>\n" +
             "<body>\n" +

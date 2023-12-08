@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -10,8 +11,6 @@ import java.util.UUID;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The HttpHandler class is responsible for handling HTTP requests from clients.
@@ -354,15 +353,21 @@ public class HttpHandler implements Runnable {
 
         // Send the HTTP response
         writer.println("HTTP/1.1 " + statusCode + " " + statusMessage);
-        for (Map.Entry<String, String> header : responseHeaders.entrySet())
+        System.out.println("HTTP/1.1 " + statusCode + " " + statusMessage);
+        for (Map.Entry<String, String> header : responseHeaders.entrySet()) {
             writer.println(header.getKey() + ": " + header.getValue());
+            System.out.println(header.getKey() + ": " + header.getValue());
+        }
 
         writer.println();
+        System.out.println();
 
         if (isChunked) sendContentInChunks(writer, content);
-        else writer.println(content);
+        else {
+            writer.println(content);
+            writer.flush();
+        }
 
-        writer.flush();
     }
 
     /**
@@ -374,21 +379,27 @@ public class HttpHandler implements Runnable {
     private void sendContentInChunks(PrintWriter writer, String content) {
         int chunkSize = WordleServer.getMaxChunckSize();
 
-        for (int i = 0; i < content.length(); i += chunkSize) {
-            
-            int end = Math.min(i + chunkSize, content.length()); // ensures that end index doesn't exceed length of content
-            String chunk = content.substring(i, end);
+        byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
 
-            System.out.print(chunk);
-            writer.println(Integer.toHexString(chunk.length()));
+        for (int i = 0; i < contentBytes.length; i += chunkSize) {
+            int end = Math.min(i + chunkSize, contentBytes.length);
+            byte[] chunkBytes = Arrays.copyOfRange(contentBytes, i, end);
+
+            // Convert chunkBytes back to a string for printing
+            String chunk = new String(chunkBytes, StandardCharsets.UTF_8);
+
+            writer.println(Integer.toHexString(chunkBytes.length));
+            System.out.println(Integer.toHexString(chunkBytes.length));
             writer.println(chunk);
+            System.out.println(chunk);
             writer.flush();
         }
 
         // Send a zero-size chunk to indicate the end of the content
         writer.println("0");
-        writer.flush();
+        writer.println();
         System.out.println("0");
+        writer.flush();
     }
 
     /**
@@ -400,7 +411,7 @@ public class HttpHandler implements Runnable {
     private void sendErrorResponse(PrintWriter writer, int statusCode) {
         String statusMessage = getStatusMessage(statusCode);
 
-        HTML htmlGenerator = new HTML();
+        // HTML htmlGenerator = new HTML();
         // String error = htmlGenerator.generateErrorPage(statusCode);
         // String error = "error " + String.valueOf(statusCode);
 
