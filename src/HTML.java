@@ -3,8 +3,13 @@ import java.io.IOException;
 
 public class HTML {
     public String generateWordlePage(String gameState) { // TODO generateErrorPage(getStatusMessage)
+        // Image to base64
+        String base64Image = "";
+        try { base64Image = ImageEncoder.encodeImageToBase64("logo.png"); } 
+        catch (IOException e) { e.printStackTrace(); } 
+        
         String title = "Wordle Game";
-        String header = "<header><img src=\"logo.png\" alt=\"WORDLE\"></header>"; // TODO BIT64
+        String header = "<header><img src=\"data:image/png;base64,"+base64Image+" alt=\"WORDLE\"></header>"; // TODO BIT64
         
         String wordleBoard = "";
         boolean isNewGame = true;

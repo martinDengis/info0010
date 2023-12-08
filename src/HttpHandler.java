@@ -114,6 +114,7 @@ public class HttpHandler implements Runnable {
             while ((line = reader.readLine()) != null && !line.isEmpty()) {
                 // Invalid header format
                 if (!line.matches("^[^:]+: .*$")) {
+                    System.err.println("117 formatCheck: " + line + " :: Invalid header format");
                     sendErrorResponse(writer, 400);
                     return false;
                 } 
@@ -143,6 +144,7 @@ public class HttpHandler implements Runnable {
     public boolean requestLineCheck(String requestLine, BufferedReader reader, PrintWriter writer) {
         if (requestLine == null || !requestLine.matches("^[A-Z]+ .* HTTP/1\\.1$")) {
             // Invalid request format
+            System.err.println("147 requestLineCheck : " + requestLine + " ::Invalid request format");
             sendErrorResponse(writer, 400);
             return false;
         } 
@@ -155,6 +157,7 @@ public class HttpHandler implements Runnable {
 
             // Check if the HTTP method is allowed
             if (!isMethodAllowed(method)) {
+                System.err.println("160 requestLineCheck : " + method + " ::Invalid HTTP method");
                 sendErrorResponse(writer, 405);
                 return false;
             }
@@ -164,6 +167,7 @@ public class HttpHandler implements Runnable {
 
             // Check if the HTTP version is supported
             if (!version.equals("HTTP/1.1")) {
+                System.err.println("170 requestLineCheck : " + version + " ::Invalid HTTP version");
                 sendErrorResponse(writer, 505);
                 return false;
             }
@@ -182,6 +186,7 @@ public class HttpHandler implements Runnable {
         // Retrieve content length
         if (!headers.containsKey("Content-Length") && !this.method.equals("GET") && !this.method.equals("HEAD")) {
             // Content-Length header not found
+            System.err.println("189 headersCheck : " + method + " ::Content-Length header not found");
             sendErrorResponse(writer, 411);
             return false;
         } 
@@ -200,8 +205,14 @@ public class HttpHandler implements Runnable {
             this.sessionID = session[1];
 
             // Check if the session ID is valid
-            if (!sessionID.matches("^[0-9a-f\\-]+$") || !WordleServer.hasSession(this.sessionID)) {
+            if (!sessionID.matches("^[0-9a-f\\-]+$")) {
                 // Invalid session ID
+                System.err.println("210 headersCheck : " + sessionID + " ::Invalid session ID");
+                sendErrorResponse(writer, 400);
+                return false;
+            } else if (!WordleServer.hasSession(this.sessionID)) {
+                // Session ID not found
+                System.err.println("214 headersCheck : " + sessionID + " ::Session ID not found");
                 sendErrorResponse(writer, 400);
                 return false;
             }
@@ -223,6 +234,7 @@ public class HttpHandler implements Runnable {
         // Check if the request is an AJAX request
         if (headers.containsKey("X-Requested-With") && !headers.get("X-Requested-With").equals("XMLHttpRequest")) {
             // Invalid request format
+            System.err.println("232 headersCheck : " + headers.get("X-Requested-With") + " ::Invalid request format");
             sendErrorResponse(writer, 400);
             return false;
         }
@@ -234,12 +246,14 @@ public class HttpHandler implements Runnable {
                 if (rowID != -1 && !sessionID.isEmpty()) {
                     // Check that the rowID match current attempt
                     if (rowID != WordleServer.getSessionData(this.sessionID).getAttempt()) {
+                        System.err.println("244 headersCheck : " + rowID + " ::Invalid row ID");
                         sendErrorResponse(writer, 400);
                         return false;
                     }
                 } 
             } 
             catch (NumberFormatException e) {
+                System.err.println("251 headersCheck : " + row + " ::NumberFormatException");
                 sendErrorResponse(writer, 400);
                 return false;
             }
@@ -365,6 +379,7 @@ public class HttpHandler implements Runnable {
             int end = Math.min(i + chunkSize, content.length()); // ensures that end index doesn't exceed length of content
             String chunk = content.substring(i, end);
 
+            System.out.println(Integer.toHexString(chunk.length()) + " " + chunk);
             writer.println(Integer.toHexString(chunk.length()));
             writer.println(chunk);
             writer.flush();
@@ -372,6 +387,7 @@ public class HttpHandler implements Runnable {
 
         // Send a zero-size chunk to indicate the end of the content
         writer.println("0");
+        System.out.println("0");
     }
 
     /**
@@ -385,14 +401,15 @@ public class HttpHandler implements Runnable {
 
         HTML htmlGenerator = new HTML();
         // String error = htmlGenerator.generateErrorPage(statusCode);
-        String error = "error" + String.valueOf(statusCode);
+        // String error = "error " + String.valueOf(statusCode);
 
         writer.println("HTTP/1.1 " + statusCode + " " + statusMessage);
         writer.println("Content-Type: text/plain");
-        writer.println("Content-Length: " + error.length());
+        writer.println("Content-Length: 0");
+        // writer.println("Content-Length: " + error.length());
         if (statusCode == 303) writer.println("Location: http://localhost:8008/play.html");
-        writer.println();
-        writer.println(error);
+        // writer.println();
+        // writer.println(error);
         writer.flush();
     }
 
@@ -417,6 +434,7 @@ public class HttpHandler implements Runnable {
      */
     private boolean isURIValid(String uri, PrintWriter writer) {
         if(uri.matches("^/$")) {
+            System.err.println("430 isURIValid : " + uri + " ::Invalid URI");
             sendErrorResponse(writer, 303); // Redirect to /play.html
             return true;
         }
