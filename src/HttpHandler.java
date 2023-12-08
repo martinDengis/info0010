@@ -35,12 +35,6 @@ public class HttpHandler implements Runnable {
         this.clientSocket = clientSocket;
     }
 
-    /**
-     * This method is responsible for handling the incoming HTTP request and processing it.
-     * It reads the request line, calls the handleRequest method to process the request,
-     * and sends an error response if the request is not successfully handled.
-     * Finally, it closes the reader, writer, and client socket.
-     */
     @Override
     public void run() {
         try {
@@ -60,6 +54,8 @@ public class HttpHandler implements Runnable {
         catch (IOException e) { e.printStackTrace(); }
     }
 
+
+    // PROCESSORS METHODS ------------------------------------------------------------
     /**
      * Handles an HTTP request.
      *
@@ -97,59 +93,9 @@ public class HttpHandler implements Runnable {
         else { pleaseRespond(writer, currAttempt, false); }    
     }
 
-    public void pleaseRespond(PrintWriter writer, int currAttempt, boolean isJSandGuess) {
-        // Process the request
-        HTML htmlGenerator = new HTML();
-        String response;
-
-        if(isJSandGuess) {
-            // Update game state
-            String colorPattern = responseBuilder(this.guess);
-            WordleServer.addGameState(this.sessionID, this.guess, colorPattern);
-
-            // Retrieve the current game state -> 1:guess:color
-            String currGameState = WordleServer.getCurrGameState(this.sessionID);
-
-            // Check if winning state
-            if (colorPattern.equals("GGGGG")) {
-                WordleServer.getSessionData(this.sessionID).setStatus("Win");
-                response = "{\"Status\": \"Win\", \"Message\":\"" + WordleServer.getSecretWord(this.sessionID) + "\"}";
-                sendHttpResponse(writer, 200, "application/json", response);
-                return;
-            }
-
-            // Check if the current attempt is the last attempt
-            if (currAttempt == 5) {
-                WordleServer.getSessionData(this.sessionID).setStatus("Gameover");
-                response = "{\"Status\": \"Gameover\", \"Message\":\"" + WordleServer.getSecretWord(this.sessionID) + "\"}";
-                sendHttpResponse(writer, 200, "application/json", response);
-                return;
-            }
-
-            response = "{\"Status\": \"Playing\", \"Message\":\"" + currGameState + "\"}";
-            sendHttpResponse(writer, 200, "application/json", response);
-        }
-        else {
-            // Update game state
-            String colorPattern = responseBuilder(this.guess);
-            WordleServer.addGameState(this.sessionID, this.guess, colorPattern);
-
-            // Retrieve the full game state
-            // -1:secret:secret;0:guess:color;1:guess:color;2:guess:color;3:guess:color;4:guess:color;5:guess:color;
-            String fullGameState = WordleServer.getFullGameState(this.sessionID);
-
-            // Check if final state
-            if (fullGameState.contains("GGGGG")) WordleServer.getSessionData(this.sessionID).setStatus("Win");
-            else if (currAttempt == 5) WordleServer.getSessionData(this.sessionID).setStatus("Gameover");
-            
-            // Send the HTTP response
-            response = htmlGenerator.generateWordlePage(fullGameState);
-            sendHttpResponse(writer, 200, "text/html", response);
-        }
-    }
-
     /**
      * Validates the format of the HTTP request and its headers.
+     * Called by handleRequest method.
      * 
      * @param requestLine The HTTP request line.
      * @param reader      The BufferedReader to read the HTTP headers.
@@ -267,6 +213,18 @@ public class HttpHandler implements Runnable {
     }
  
     /**
+     * Checks if a given word is a valid 5-letter word that exists in the WordleWordSet.
+     * Called by isURIValid method.
+     * 
+     * @param guess the word to be checked
+     * @return true if the word is valid and exists, false otherwise
+     */
+    private boolean isGuessValid(String guess) {
+        // Check if the word is a valid 5-letter word and exists
+        return guess.length() == 5 && WordleWordSet.WORD_SET.contains(guess);
+    }
+
+    /**
      * Checks the headers of the HTTP request.
      * Called by formatCheck method.
      * 
@@ -343,76 +301,70 @@ public class HttpHandler implements Runnable {
     }
 
     /**
-     * Checks if a given word is a valid 5-letter word that exists in the WordleWordSet.
-     * 
-     * @param guess the word to be checked
-     * @return true if the word is valid and exists, false otherwise
-     */
-    private boolean isGuessValid(String guess) {
-        // Check if the word is a valid 5-letter word and exists
-        return guess.length() == 5 && WordleWordSet.WORD_SET.contains(guess);
-    }
-
-    /**
-     * Reads the body of the HTTP request from the provided BufferedReader and returns it as a String.
+     * Handles the HTTP response based on the current game state and request type.
+     * If the request type is JavaScript and guess, it updates the game state, checks for a winning state,
+     * and sends the appropriate JSON response.
+     * If the request type is not JavaScript and guess, it updates the game state, checks for a final state,
+     * and sends the appropriate HTML response.
+     * Called by handleRequest method.
      *
-     * @param reader the BufferedReader used to read the request body
-     * @return the body of the HTTP request as a String
+     * @param writer      the PrintWriter object used to send the HTTP response
+     * @param currAttempt the current attempt number
+     * @param isJSandGuess true if the request type is JavaScript and guess, false otherwise
      */
-    private String getBody(BufferedReader reader) {
-        try {
-            // Check if the request is chunked
-            if (this.isChunked) { return getChunkedBody(reader); }
+    public void pleaseRespond(PrintWriter writer, int currAttempt, boolean isJSandGuess) {
+        // Process the request
+        HTML htmlGenerator = new HTML();
+        String response;
 
-            // If not chunked, read the body based on Content-Length
-            int bytesRead = 0;
-            while (bytesRead < this.buffer.length) {
-                int result = reader.read(buffer, bytesRead, this.buffer.length - bytesRead);
-                if (result == -1) break;
-                bytesRead += result;
+        if(isJSandGuess) {
+            // Update game state
+            String colorPattern = responseBuilder(this.guess);
+            WordleServer.addGameState(this.sessionID, this.guess, colorPattern);
+
+            // Retrieve the current game state -> 1:guess:color
+            String currGameState = WordleServer.getCurrGameState(this.sessionID);
+
+            // Check if winning state
+            if (colorPattern.equals("GGGGG")) {
+                WordleServer.getSessionData(this.sessionID).setStatus("Win");
+                response = "{\"Status\": \"Win\", \"Message\":\"" + WordleServer.getSecretWord(this.sessionID) + "\"}";
+                sendHttpResponse(writer, 200, "application/json", response);
+                return;
             }
-            return new String(buffer, 0, bytesRead);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
+
+            // Check if the current attempt is the last attempt
+            if (currAttempt == 5) {
+                WordleServer.getSessionData(this.sessionID).setStatus("Gameover");
+                response = "{\"Status\": \"Gameover\", \"Message\":\"" + WordleServer.getSecretWord(this.sessionID) + "\"}";
+                sendHttpResponse(writer, 200, "application/json", response);
+                return;
+            }
+
+            response = "{\"Status\": \"Playing\", \"Message\":\"" + currGameState + "\"}";
+            sendHttpResponse(writer, 200, "application/json", response);
+        }
+        else {
+            // Update game state
+            String colorPattern = responseBuilder(this.guess);
+            WordleServer.addGameState(this.sessionID, this.guess, colorPattern);
+
+            // Retrieve the full game state
+            // -1:secret:secret;0:guess:color;1:guess:color;2:guess:color;3:guess:color;4:guess:color;5:guess:color;
+            String fullGameState = WordleServer.getFullGameState(this.sessionID);
+
+            // Check if final state
+            if (fullGameState.contains("GGGGG")) WordleServer.getSessionData(this.sessionID).setStatus("Win");
+            else if (currAttempt == 5) WordleServer.getSessionData(this.sessionID).setStatus("Gameover");
+            
+            // Send the HTTP response
+            response = htmlGenerator.generateWordlePage(fullGameState);
+            sendHttpResponse(writer, 200, "text/html", response);
         }
     }
 
-    /**
-     * Reads the chunked body from the provided BufferedReader and returns it as a String.
-     *
-     * @param reader the BufferedReader to read the chunked body from
-     * @return the chunked body as a String
-     */
-    private String getChunkedBody(BufferedReader reader) {
-        try {
-            StringBuilder bodyBuilder = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                // Parse the chunk size
-                int chunkSize = Integer.parseInt(line.trim(), 16); // Chunk sizes are in hex
-                if (chunkSize == 0) break;
 
-                // Read the chunk data
-                char[] buffer = new char[chunkSize];
-                int bytesRead = 0;
-                while (bytesRead < chunkSize) {
-                    int result = reader.read(buffer, bytesRead, chunkSize - bytesRead);
-                    if (result == -1) break;
-                    bytesRead += result;
-                }
-                bodyBuilder.append(buffer, 0, bytesRead);
-
-                // Skip the newline after the chunk
-                reader.readLine();
-            }
-            return bodyBuilder.toString();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
+    // HELPERS METHODS ------------------------------------------------------------
     /**
      * Sends an HTTP response with the specified status code, content type, and content.
      *
@@ -461,26 +413,6 @@ public class HttpHandler implements Runnable {
         writer.println();
         writer.println(error);
         writer.flush();
-    }
-
-    /**
-     * Returns the status message corresponding to the given status code.
-     *
-     * @param statusCode the HTTP status code
-     * @return the status message
-     */
-    private static String getStatusMessage(int statusCode) {
-        switch (statusCode) {
-            case 200: return "OK";
-            case 303: return "See Other";
-            case 400: return "Bad Request";
-            case 404: return "Not Found";
-            case 405: return "Method Not Allowed";
-            case 411: return "Length Required";
-            case 501: return "Not Implemented";
-            case 505: return "HTTP Version Not Supported";
-            default: return "Unknown Status";
-        }
     }
 
     /**
@@ -539,6 +471,88 @@ public class HttpHandler implements Runnable {
 
         String response = new String(pattern);
         return response;
+    }
+
+    /**
+     * Returns the status message corresponding to the given status code.
+     *
+     * @param statusCode the HTTP status code
+     * @return the status message
+     */
+    private static String getStatusMessage(int statusCode) {
+        switch (statusCode) {
+            case 200: return "OK";
+            case 303: return "See Other";
+            case 400: return "Bad Request";
+            case 404: return "Not Found";
+            case 405: return "Method Not Allowed";
+            case 411: return "Length Required";
+            case 501: return "Not Implemented";
+            case 505: return "HTTP Version Not Supported";
+            default: return "Unknown Status";
+        }
+    }
+
+
+    // UNUSED METHODS ------------------------------------------------------------
+    /**
+     * Reads the body of the HTTP request from the provided BufferedReader and returns it as a String.
+     *
+     * @param reader the BufferedReader used to read the request body
+     * @return the body of the HTTP request as a String
+     */
+    private String getBody(BufferedReader reader) {
+        try {
+            // Check if the request is chunked
+            if (this.isChunked) { return getChunkedBody(reader); }
+
+            // If not chunked, read the body based on Content-Length
+            int bytesRead = 0;
+            while (bytesRead < this.buffer.length) {
+                int result = reader.read(buffer, bytesRead, this.buffer.length - bytesRead);
+                if (result == -1) break;
+                bytesRead += result;
+            }
+            return new String(buffer, 0, bytesRead);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Reads the chunked body from the provided BufferedReader and returns it as a String.
+     *
+     * @param reader the BufferedReader to read the chunked body from
+     * @return the chunked body as a String
+     */
+    private String getChunkedBody(BufferedReader reader) {
+        try {
+            StringBuilder bodyBuilder = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // Parse the chunk size
+                int chunkSize = Integer.parseInt(line.trim(), 16); // Chunk sizes are in hex
+                if (chunkSize == 0) break;
+
+                // Read the chunk data
+                char[] buffer = new char[chunkSize];
+                int bytesRead = 0;
+                while (bytesRead < chunkSize) {
+                    int result = reader.read(buffer, bytesRead, chunkSize - bytesRead);
+                    if (result == -1) break;
+                    bytesRead += result;
+                }
+                bodyBuilder.append(buffer, 0, bytesRead);
+
+                // Skip the newline after the chunk
+                reader.readLine();
+            }
+            return bodyBuilder.toString();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
 }
