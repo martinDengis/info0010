@@ -1,4 +1,3 @@
-import java.io.FileWriter;
 import java.io.IOException;
 
 public class HTML {
@@ -9,7 +8,7 @@ public class HTML {
         catch (IOException e) { e.printStackTrace(); } 
         
         String title = "Wordle Game";
-        String header = "<header><img src=\"data:image/png;base64,"+base64Image+" alt=\"WORDLE\"></header>"; // TODO BIT64
+        String header = "<header><img src=\"data:image/png;base64,"+base64Image+"\" alt=\"WORDLE\"></header>";
         
         String wordleBoard = "";
         boolean isNewGame = true;
@@ -375,8 +374,8 @@ public class HTML {
     public String fallbackForm() {
         return "<noscript>" +
                 "<form action=\"/guess\" method=\"post\">" +
-                "<input type=\"text\" name=\"guess\" required pattern=\"[A-Za-z]{5}\" maxlength=\"5\" />" +
-                "<input type=\"submit\" value=\"Submit Guess\" />" +
+                "<input type=\"text\" name=\"guess\" required pattern=\"[A-Za-z]{5}\" maxlength=\"5\">" +
+                "<input type=\"submit\" value=\"Submit Guess\">" +
                 "</form>" +
                 "</noscript>"; 
     }
@@ -421,7 +420,7 @@ public class HTML {
                 "}" + 
                 ".word-cell.green { background-color: #6aaa64; }" +
                 ".word-cell.yellow { background-color: #c9b458; }" +
-                ".word-cell.darkened { background-color: #262626; };" +
+                ".word-cell.darkened { background-color: #262626; }" +
                 ".modal {" +
                 "   display: none;" +
                 "   position: fixed;" + 
@@ -433,7 +432,7 @@ public class HTML {
                 "   overflow: auto; " +
                 "   background-color: rgb(0,0,0);" +
                 "   background-color: rgba(0,0,0,0.4);" +
-                "  backdrop-filter: blur(8px);" +
+                "   backdrop-filter: blur(8px);" +
                 "}" +
                 ".modal-content {" +
                 "   background-color: #fefefe;" +

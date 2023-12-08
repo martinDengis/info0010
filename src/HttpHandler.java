@@ -379,7 +379,7 @@ public class HttpHandler implements Runnable {
             int end = Math.min(i + chunkSize, content.length()); // ensures that end index doesn't exceed length of content
             String chunk = content.substring(i, end);
 
-            System.out.println(Integer.toHexString(chunk.length()) + " " + chunk);
+            System.out.print(chunk);
             writer.println(Integer.toHexString(chunk.length()));
             writer.println(chunk);
             writer.flush();
@@ -387,6 +387,7 @@ public class HttpHandler implements Runnable {
 
         // Send a zero-size chunk to indicate the end of the content
         writer.println("0");
+        writer.flush();
         System.out.println("0");
     }
 
