@@ -24,11 +24,11 @@ public class HttpHandler implements Runnable {
     private boolean isChunked = false;
     private boolean isRequestGuess = false;
     private boolean isJavaScriptEnabled = true;
+    private int rowID = -1; // -1 means no rowID (initial state)
     private String sessionID = "";
     private String guess = "";
-    private final Map<String, String> headers = new HashMap<String, String>();
     private char[] buffer = null;
-    private int rowID = -1; // -1 means no rowID (initial state)
+    private final Map<String, String> headers = new HashMap<String, String>();
 
     public HttpHandler(int serverID, Socket clientSocket) {
         this.serverID = serverID;
@@ -171,60 +171,6 @@ public class HttpHandler implements Runnable {
     }
 
     /**
-     * Checks if the given HTTP method is allowed.
-     * Called by requestLineCheck.
-     *
-     * @param method the HTTP method to check
-     * @return true if the method is allowed, false otherwise
-     */
-    private boolean isMethodAllowed(String method) {
-        ArrayList<String> allowedMethods = new ArrayList<>(Arrays.asList("GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS"));
-        if (!allowedMethods.contains(method)) return false;
-
-        return true;
-    }
-
-    /**
-     * Checks if the given URI is valid.
-     * Called by requestLineCheck method.
-     *
-     * @param uri the URI to check
-     * @return true if the URI is valid, false otherwise
-     */
-    private boolean isURIValid(String uri, PrintWriter writer) {
-        if(uri.matches("^/$")) {
-            sendErrorResponse(writer, 303); // Redirect to /play.html
-            return true;
-        }
-        else if (uri.matches("^/play\\.html$")) return true;
-        else if (uri.matches("^/play\\.html/guess\\?word=[a-z]{5}$")) {
-            this.isRequestGuess = true;
-            this.guess = uri.split("=")[1].toLowerCase();
-
-            if (!isGuessValid(this.guess)) {
-                String response = "{\"Status\": \"Invalid\", \"Message\": \"error\"}";
-                sendHttpResponse(writer, 200, "application/json", response);
-                return false;
-            }
-            return true;
-        }
-        
-        return false;
-    }
- 
-    /**
-     * Checks if a given word is a valid 5-letter word that exists in the WordleWordSet.
-     * Called by isURIValid method.
-     * 
-     * @param guess the word to be checked
-     * @return true if the word is valid and exists, false otherwise
-     */
-    private boolean isGuessValid(String guess) {
-        // Check if the word is a valid 5-letter word and exists
-        return guess.length() == 5 && WordleWordSet.WORD_SET.contains(guess);
-    }
-
-    /**
      * Checks the headers of the HTTP request.
      * Called by formatCheck method.
      * 
@@ -315,11 +261,11 @@ public class HttpHandler implements Runnable {
     public void pleaseRespond(PrintWriter writer, int currAttempt, boolean isJSandGuess) {
         // Process the request
         HTML htmlGenerator = new HTML();
+        String colorPattern = responseBuilder(this.guess);
         String response;
 
         if(isJSandGuess) {
             // Update game state
-            String colorPattern = responseBuilder(this.guess);
             WordleServer.addGameState(this.sessionID, this.guess, colorPattern);
 
             // Retrieve the current game state -> 1:guess:color
@@ -346,7 +292,6 @@ public class HttpHandler implements Runnable {
         }
         else {
             // Update game state
-            String colorPattern = responseBuilder(this.guess);
             WordleServer.addGameState(this.sessionID, this.guess, colorPattern);
 
             // Retrieve the full game state
@@ -367,6 +312,7 @@ public class HttpHandler implements Runnable {
     // HELPERS METHODS ------------------------------------------------------------
     /**
      * Sends an HTTP response with the specified status code, content type, and content.
+     * Supports Chunked Transfer Encoding.
      *
      * @param writer      the PrintWriter used to write the response
      * @param statusCode  the status code of the HTTP response
@@ -374,24 +320,53 @@ public class HttpHandler implements Runnable {
      * @param content     the content of the response
      */
     private void sendHttpResponse(PrintWriter writer, int statusCode, String contentType, String content) {
-        // Prepare the HTTP response headers
-        Map<String, String> responseHeaders = new HashMap<String, String>();
-        responseHeaders.put("Date", new Date().toString());
-        responseHeaders.put("Server", String.valueOf(this.serverID));
-        if (this.newSession) responseHeaders.put("Set-Cookie", "SESSID=" + this.sessionID + "; path=/; Max-Age=600");
-
+        // Check if the content should be chunked and get status message
+        boolean isChunked = content.length() > WordleServer.getMaxChunckSize();
         String statusMessage = getStatusMessage(statusCode);
 
+        // Prepare the HTTP response headers
+        Map<String, String> responseHeaders = new HashMap<>();
+        responseHeaders.put("Content-Type", contentType);
+        if (isChunked) responseHeaders.put("Transfer-Encoding", "chunked");
+        else responseHeaders.put("Content-Length", String.valueOf(content.length()));
+        if (this.newSession) responseHeaders.put("Set-Cookie", "SESSID=" + this.sessionID + "; path=/; Max-Age=600");
+        responseHeaders.put("Date", new Date().toString());
+        responseHeaders.put("Server", String.valueOf(this.serverID));
+
+        // Send the HTTP response
         writer.println("HTTP/1.1 " + statusCode + " " + statusMessage);
-        writer.println("Content-Type: " + contentType);
-        writer.println("Content-Length: " + content.length());
-        // Send additional headers : namely Date and Server ID
         for (Map.Entry<String, String> header : responseHeaders.entrySet())
             writer.println(header.getKey() + ": " + header.getValue());
 
         writer.println();
-        writer.println(content);
+
+        if (isChunked) sendContentInChunks(writer, content);
+        else writer.println(content);
+
         writer.flush();
+    }
+
+    /**
+     * Sends the content in chunks using Chunked Transfer Encoding.
+     *
+     * @param writer  the PrintWriter used to write the chunks
+     * @param content the content to be sent in chunks
+     */
+    private void sendContentInChunks(PrintWriter writer, String content) {
+        int chunkSize = WordleServer.getMaxChunckSize();
+
+        for (int i = 0; i < content.length(); i += chunkSize) {
+            
+            int end = Math.min(i + chunkSize, content.length()); // ensures that end index doesn't exceed length of content
+            String chunk = content.substring(i, end);
+
+            writer.println(Integer.toHexString(chunk.length()));
+            writer.println(chunk);
+            writer.flush();
+        }
+
+        // Send a zero-size chunk to indicate the end of the content
+        writer.println("0");
     }
 
     /**
@@ -408,12 +383,58 @@ public class HttpHandler implements Runnable {
 
         writer.println("HTTP/1.1 " + statusCode + " " + statusMessage);
         writer.println("Content-Type: text/plain");
-        writer.println("Content-Length: 0");
+        writer.println("Content-Length: " + error.length());
         if (statusCode == 303) writer.println("Location: http://localhost:8008/play.html");
         writer.println();
         writer.println(error);
         writer.flush();
     }
+
+    /**
+     * Checks if the given HTTP method is allowed.
+     * Called by requestLineCheck method.
+     *
+     * @param method the HTTP method to check
+     * @return true if the method is allowed, false otherwise
+     */
+    private boolean isMethodAllowed(String method) { return HttpMethod.isMethodAllowed(method); }
+
+    /**
+     * Checks if the given URI is valid.
+     * Called by requestLineCheck method.
+     *
+     * @param uri the URI to check
+     * @return true if the URI is valid, false otherwise
+     */
+    private boolean isURIValid(String uri, PrintWriter writer) {
+        if(uri.matches("^/$")) {
+            sendErrorResponse(writer, 303); // Redirect to /play.html
+            return true;
+        }
+        else if (uri.matches("^/play\\.html$")) return true;
+        else if (uri.matches("^/play\\.html/guess\\?word=[a-z]{5}$")) {
+            this.isRequestGuess = true;
+            this.guess = uri.split("=")[1].toLowerCase();
+
+            if (!isGuessValid(this.guess)) {
+                String response = "{\"Status\": \"Invalid\", \"Message\": \"error\"}";
+                sendHttpResponse(writer, 200, "application/json", response);
+                return false;
+            }
+            return true;
+        }
+        
+        return false;
+    }
+ 
+    /**
+     * Checks if a given word is a valid 5-letter word that exists in the WordleWordSet.
+     * Called by isURIValid method.
+     * 
+     * @param guess the word to be checked
+     * @return true if the word is valid and exists, false otherwise
+     */
+    private boolean isGuessValid(String guess) { return guess.length() == 5 && WordleWordSet.WORD_SET.contains(guess); }
 
     /**
      * Generates a secret word by randomly selecting a word from the word list.
