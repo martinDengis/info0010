@@ -192,7 +192,8 @@ public class HTML {
             "<div id=\"modal\" class=\"modal\">" +
             "    <div class=\"modal-content\">" +
             "        <span class=\"close\">&times;</span>" +
-            "        <p id=\"modal-text\"></p>" +
+            "        <p id=\"modal-text\">Some Text</p>" +
+            "        <button onclick=\"restartGame()\">restart</button>" +
             "    </div>" +  
             "</div>" +
             script +
@@ -356,17 +357,17 @@ public class HTML {
                 "   width: 100%;" +
                 "   height: 100%;" +
                 "   overflow: auto; " +
+                "   background-color: rgb(0,0,0);" +
                 "   background-color: rgba(0,0,0,0.4);" +
-                "   display: flex;" +
-                "   align-items: center; " +
-                "   justify-content: center;" +
+                "  backdrop-filter: blur(8px);" +
                 "}" +
                 ".modal-content {" +
                 "   background-color: #fefefe;" +
-                "   margin: auto;" +
+                "   margin: 15% auto;" +
                 "   padding: 20px;" + 
                 "   border: 1px solid #888;" +
                 "   width: 50%; " +
+                "   text-align: center;" +
                 "   box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);" +
                 "   animation: animatetop 0.4s;" +
                 "}" +
