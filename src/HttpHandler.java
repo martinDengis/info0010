@@ -20,28 +20,19 @@ import java.util.concurrent.ConcurrentHashMap;
 public class HttpHandler implements Runnable {
     private final int serverID;
     private final Socket clientSocket;
-    private boolean newSession;
-    private String sessionID;
-    private Map<String, String> headers;
-    private char[] buffer;
-    private boolean isChunked;
-    private boolean isRequestGuess;
-    private String guess;
-    private boolean isJavaScriptEnabled;
-    private int rowID;
+    private boolean newSession = false;
+    private boolean isChunked = false;
+    private boolean isRequestGuess = false;
+    private boolean isJavaScriptEnabled = true;
+    private String sessionID = "";
+    private String guess = "";
+    private final Map<String, String> headers = new HashMap<String, String>();
+    private char[] buffer = null;
+    private int rowID = -1; // -1 means no rowID (initial state)
 
     public HttpHandler(int serverID, Socket clientSocket) {
         this.serverID = serverID;
         this.clientSocket = clientSocket;
-        this.newSession = false;
-        this.sessionID = "";
-        this.buffer = null;
-        this.isChunked = false;
-        this.headers = new HashMap<String, String>();
-        this.isRequestGuess = false;
-        this.guess = "";
-        this.isJavaScriptEnabled = true;
-        this.rowID = -1; // -1 means no rowID (initial state)
     }
 
     /**
@@ -95,6 +86,7 @@ public class HttpHandler implements Runnable {
 
         int currAttempt = WordleServer.getSessionData(this.sessionID).getAttempt();
         if (currAttempt > 5) {
+            WordleServer.getSessionData(this.sessionID).setStatus("Gameover");
             String response = "{\"Status\": \"Gameover\", \"Message\":\"" + WordleServer.getSecretWord(this.sessionID) +"\"}";
             sendHttpResponse(writer, 200, "application/json", response);
         };
@@ -108,12 +100,16 @@ public class HttpHandler implements Runnable {
 
         // Check if JavaScript is enabled && if the request is a guess
         if (isJavaScriptEnabled && isRequestGuess) {
+            // Update game state
             String colorPattern = responseBuilder(this.guess);
-            WordleServer.addGamestate(this.sessionID, this.guess, colorPattern);
-            String currGameState = WordleServer.getCurrGameState(this.sessionID);   // 1:guess:color
+            WordleServer.addGameState(this.sessionID, this.guess, colorPattern);
+
+            // Retrieve the current game state -> 1:guess:color
+            String currGameState = WordleServer.getCurrGameState(this.sessionID);
 
             // Check if winning state
             if (colorPattern.equals("GGGGG")) {
+                WordleServer.getSessionData(this.sessionID).setStatus("Win");
                 response = "{\"Status\": \"Win\", \"Message\":\"" + WordleServer.getSecretWord(this.sessionID) + "\"}";
                 sendHttpResponse(writer, 200, "application/json", response);
                 return;
@@ -121,6 +117,7 @@ public class HttpHandler implements Runnable {
 
             // Check if the current attempt is the last attempt
             if (currAttempt == 5) {
+                WordleServer.getSessionData(this.sessionID).setStatus("Gameover");
                 response = "{\"Status\": \"Gameover\", \"Message\":\"" + WordleServer.getSecretWord(this.sessionID) + "\"}";
                 sendHttpResponse(writer, 200, "application/json", response);
                 return;
@@ -131,11 +128,20 @@ public class HttpHandler implements Runnable {
         }
         // Else it is either a page reload (even with JS enabled) or JS is disabled (POST request)
         else {
-            String fullGameState = WordleServer.getFullGameState(this.sessionID);   
-            // 0:guess:color;1:guess:color;2:guess:color;3:guess:color;4:guess:color;5:guess:color;
-            response = htmlGenerator.generateWordlePage(fullGameState);
+            // Update game state
+            String colorPattern = responseBuilder(this.guess);
+            WordleServer.addGameState(this.sessionID, this.guess, colorPattern);
 
+            // Retrieve the full game state
+            // -1:secret:secret;0:guess:color;1:guess:color;2:guess:color;3:guess:color;4:guess:color;5:guess:color;
+            String fullGameState = WordleServer.getFullGameState(this.sessionID);
+
+            // Check if final state
+            if (fullGameState.contains("GGGGG")) WordleServer.getSessionData(this.sessionID).setStatus("Win");
+            else if (currAttempt == 5) WordleServer.getSessionData(this.sessionID).setStatus("Gameover");
+            
             // Send the HTTP response
+            response = htmlGenerator.generateWordlePage(fullGameState);
             sendHttpResponse(writer, 200, "text/html", response);
         }
     }
@@ -287,9 +293,11 @@ public class HttpHandler implements Runnable {
                 return false;
             }
 
-            // Check that session has not expired
+            // Check that session has not expired or is not in a winning/gameover state
             WordleServer.getSessionData(this.sessionID).updateLastActivityTime();
-            if(WordleServer.getSessionData(this.sessionID).isExpired()) {
+            boolean isExpired = WordleServer.getSessionData(this.sessionID).isExpired();
+            String status = WordleServer.getSessionData(this.sessionID).getStatus();
+            if(isExpired || status.equals("Gameover") || status.equals("Win")) {
                 WordleServer.removeSession(this.sessionID);
                 this.sessionID = "";
             }
