@@ -3,6 +3,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * The SessionData class represents the data associated with a game session.
+ * It stores information such as the number of attempts, last activity time,
+ * game status, secret word, and game state.
+ */
 public class SessionData {
     private static final int SESSION_TIMEOUT_SECONDS = 600; // 10 minutes
     private int attempt = 0;

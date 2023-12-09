@@ -8,6 +8,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 
+/**
+ * The WordleServer class represents the server component of the Wordle game.
+ * It handles incoming client connections, manages game sessions, and provides
+ * methods to access and manipulate session data.
+ */
 public class WordleServer {
     private static final int SERVER_ID = new Random().nextInt(9999);
     private static final int PORT = 8008;
@@ -42,6 +47,7 @@ public class WordleServer {
         }
     }
 
+    // Getters
     public static int getServerID() { return SERVER_ID; }
     public static int getPort() { return PORT; }
     public static int getMaxChunckSize() { return MAX_CHUNCK_SIZE; }

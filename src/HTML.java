@@ -1,6 +1,15 @@
 import java.io.IOException;
 
+/**
+ * The HTML class is responsible for generating the HTML page for the Wordle game.
+ */
 public class HTML {
+    /**
+     * Method for generating the HTML page for the Wordle game.
+     * 
+     * @param gameState the full game state for current session 
+     * @return the HTML page as a String
+     */
     public String generateWordlePage(String gameState) { // TODO generateErrorPage(getStatusMessage)
         // Image to base64
         String base64Image = "";
@@ -22,7 +31,7 @@ public class HTML {
         String styles = generateStyles();
         String fallbackForm = fallbackForm();
 
-        String modalHtml =                                              // TODO deal with style
+        String modalHtml =
                             "<div id='gameModal' class='modal'>" +
                             "   <div class='modal-content'>" +
                             "       <span class='close'>&times;</span>" +
@@ -226,7 +235,6 @@ public class HTML {
                         "  }" +
                         "});" +
                         "</script>";
-            
 
         return "<!DOCTYPE html>\n" +
             "<html lang=\"en\">\n" +
@@ -248,6 +256,11 @@ public class HTML {
             "</html>";
     }
 
+    /**
+     * Generates the Wordle board HTML string.
+     * 
+     * @return The Wordle board HTML string.
+     */
     private String generateWordleBoard() {
         StringBuilder boardBuilder = new StringBuilder();
         for (int i = 0; i < 6; i++) {
@@ -264,6 +277,12 @@ public class HTML {
         return boardBuilder.toString() + scriptUpdate;
     }
     
+    /**
+     * Generates a Wordle board with the given game state.
+     * 
+     * @param gameState the game state represented as a string
+     * @return the generated Wordle board as a string
+     */
     private String generateWordleBoardWithState(String gameState) {
         StringBuilder boardBuilder = new StringBuilder();
         String[] tries = gameState.split(";");
@@ -286,9 +305,9 @@ public class HTML {
     
             if (guess.isEmpty()) {
                 // Generate empty cells for the row
-                for (int j = 0; j < 5; j++) {
+                for (int j = 0; j < 5; j++)
                     boardBuilder.append("<div class=\"word-cell\" id=\"cell-").append(i-1).append("-").append(j).append("\"></div>");
-                }
+
             } else {
                 lastFilledRow = i-1;
                 // Generate cells with guesses and color
@@ -317,9 +336,7 @@ public class HTML {
             }
         }
     
-        if (!gameEnded && lastFilledRow == 5) {
-            gameEnded = true;
-        }
+        if (!gameEnded && lastFilledRow == 5) gameEnded = true;
 
         if (gameEnded) {
             String modalMessage = playerWon ? "Congratulations, You Won!" : "Game Over. The correct word was: " + secretWord.toUpperCase();
@@ -334,6 +351,12 @@ public class HTML {
         return boardBuilder.toString() + scriptUpdate;
     }    
     
+    /**
+     * Returns the color class corresponding to the given color code.
+     * 
+     * @param colorCode the color code ('G' for green, 'Y' for yellow, 'B' for darkened)
+     * @return the color class corresponding to the given color code, or an empty string if the color code is invalid
+     */
     private String getColorClass(char colorCode) {
         switch (colorCode) {
             case 'G': return "green";
@@ -343,6 +366,11 @@ public class HTML {
         }
     }    
 
+    /**
+     * Generates the HTML representation of the keyboard.
+     * 
+     * @return the HTML representation of the keyboard as a String
+     */
     private String generateKeyboard() {
         String[][] keyRows = {
             {"A", "Z", "E", "R", "T", "Y", "U", "I", "O", "P"},
@@ -371,6 +399,13 @@ public class HTML {
         return keyboardBuilder.toString();
     }
 
+    /**
+     * Returns a fallback HTML form for the Wordle game.
+     * This form is displayed when JavaScript is disabled in the user's browser.
+     * The form allows the user to submit a guess for the game.
+     *
+     * @return the HTML form as a string
+     */
     public String fallbackForm() {
         return "<noscript>" +
                 "<form action=\"/play.html/guess\" method=\"POST\">" +
@@ -380,6 +415,11 @@ public class HTML {
                 "</noscript>"; 
     }
 
+    /**
+     * Generates the styles for the HTML page.
+     *
+     * @return The generated styles as a String.
+     */
     private String generateStyles() {
         return "body { font-family: Arial, sans-serif; background-color: #121213; color: white; }" +
                 "header { text-align: center; padding: 20px; }" +
@@ -462,18 +502,5 @@ public class HTML {
                 "   cursor: pointer;" +
                 "}" ;
     }
-   
-    // public static void main(String[] args) {
-    //     String gameState = "-1:secret:secret;0:loose:BGYGY;1:house:GGGBG;2::;3::;4::;5::";
-    //     //String gameState = "-1:secret:secret;0::;1::;2::;3::;4::;5::";
 
-    //     HTML htmlGenerator = new HTML();
-    //     String content = htmlGenerator.generateWordlePage(gameState);
-
-    //     try (FileWriter fileWriter = new FileWriter("wordle.html")) {
-    //         fileWriter.write(content);
-    //     } catch (IOException e) {
-    //         e.printStackTrace();
-    //     }
-    // }
 }
