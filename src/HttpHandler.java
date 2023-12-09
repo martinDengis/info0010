@@ -161,7 +161,7 @@ public class HttpHandler implements Runnable {
             System.err.println(requestLine + " ::Invalid request format");
             sendErrorResponse(writer, 400);
             return false;
-        } 
+        }
         else {
             // Extract the request method, URI and HTTP version
             String[] request = requestLine.split(" ", 3);
