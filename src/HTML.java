@@ -165,6 +165,8 @@ public class HTML {
                             "        }" +
                             "    }" +
                             "    currentRow++;" + // Prepare for the next guess
+                            "    currentGuess = '';" +
+                            "    currentCell = 0;" +
                             "}";
         
         String showModalFunction =
@@ -329,7 +331,7 @@ public class HTML {
         }
 
         if (gameEnded) {
-            String modalMessage = playerWon ? "Congratulations, You Won!" : "Game Over. The correct word was: " + secretWord;
+            String modalMessage = playerWon ? "Congratulations, You Won!" : "Game Over. The correct word was: " + secretWord.toUpperCase();
             boardBuilder.append("<div class=\"modal\" style=\"display: block;\">")
                         .append("<p>").append(modalMessage).append("</p>")
                         .append("</div>");
@@ -450,6 +452,7 @@ public class HTML {
                 "   text-align: center;" +
                 "   box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);" +
                 "   animation: animatetop 0.4s;" +
+                "   color: black;" +
                 "}" +
                 "@keyframes animatetop {" +
                 "   from {top: -300px; opacity: 0}" +

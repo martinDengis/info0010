@@ -464,8 +464,10 @@ public class HttpHandler implements Runnable {
             this.guess = uri.split("=")[1].toLowerCase();
 
             if (!isGuessValid(this.guess)) {
-                String response = "{\"Status\": \"Invalid\", \"Message\": \"error\"}";
+                String response = "{\"Status\": \"Invalid\", \"Message\": \"Word does not exist. Try another.\"}";
                 sendHttpResponse(writer, 200, "application/json", response);
+                if (!this.sessionID.isEmpty() && WordleServer.hasSession(sessionID))
+                    WordleServer.getSessionData(this.sessionID).decrementAttempts();
                 return false;
             }
             return true;

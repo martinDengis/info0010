@@ -51,6 +51,7 @@ public class SessionData {
     
     // Setters
     public void incrementAttempts() { this.attempt++; }
+    public void decrementAttempts() { this.attempt--; }
     public void resetAttempts() { this.attempt = 0; }
     public void updateLastActivityTime() { this.lastActivityTime = System.currentTimeMillis(); }
     public void setStatus(String status) { this.status = status; }
