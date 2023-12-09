@@ -53,4 +53,9 @@ public class WordleServer {
     public static void removeSession(String id) { SESSIONS.remove(id); }
     public static void addGameState(String id, String guess, String color) { SESSIONS.get(id).addGameState(guess, color); }
     public static boolean hasSession(String id) { return SESSIONS.containsKey(id); }
+    public static void printSESSION(String id) {
+        System.out.println("SESSION INFO:");
+        System.out.println("  id: " + id);
+        System.out.println("  Secret Word:" + SESSIONS.get(id).getSecretWord());
+    }
 }

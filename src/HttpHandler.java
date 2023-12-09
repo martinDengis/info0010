@@ -77,6 +77,7 @@ public class HttpHandler implements Runnable {
             // Create a new entry in the sessions mapping
             SessionData sessionData = new SessionData(generateSecretWord());
             WordleServer.addSession(this.sessionID, sessionData);
+            System.err.println("New session added to mapping:" + this.sessionID);
         }
 
         // Check if the game is over
@@ -203,6 +204,8 @@ public class HttpHandler implements Runnable {
             // Extract the session ID from the Cookie header
             String[] session = headers.get("Cookie").split("=", 2);
             this.sessionID = session[1];
+            System.err.println("User id: " + sessionID);
+            if (WordleServer.hasSession(sessionID)) WordleServer.printSESSION(sessionID);
 
             // Check if the session ID is valid
             if (!sessionID.matches("^[0-9a-f\\-]+$")) {
@@ -214,6 +217,7 @@ public class HttpHandler implements Runnable {
             // If sessionID exists on client but not on server, make as if new session (will override the cookie on browser)
             else if (!WordleServer.hasSession(this.sessionID)) {
                 this.newSession = true;
+                System.err.println("!!!!!!!!!!!!!!!!!!!! FALSE !!!!!!!!!!!!!!!!!!!!!");
 
                 // Create a new entry in the sessions mapping
                 SessionData sessionData = new SessionData(generateSecretWord());
@@ -293,7 +297,7 @@ public class HttpHandler implements Runnable {
             // Check if winning state
             if (colorPattern.equals("GGGGG")) {
                 WordleServer.getSessionData(this.sessionID).setStatus("Win");
-                response = "{\"Status\": \"Win\", \"Message\":\"" + WordleServer.getSecretWord(this.sessionID) + "\"}";
+                response = "{\"Status\": \"Win\", \"Message\":\"" + currGameState + "\"}";
                 sendHttpResponse(writer, 200, "application/json", response);
                 return;
             }

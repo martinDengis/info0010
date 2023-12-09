@@ -11,21 +11,19 @@ public class HTML {
         String header = "<header><img src=\"data:image/png;base64,"+base64Image+"\" alt=\"WORDLE\"></header>";
         
         String wordleBoard = "";
-        boolean isNewGame = true;
-        String[] parts = gameState.split(";");
-        if (parts[1].equals("0::")) isNewGame = true;
+        boolean isNewGame = false;
+        // String[] parts = gameState.split(";"); // either -1:secret:secret;0:guess:color;1::;2::;3::;4::;5::
         // for (int i = 1; i < parts.length; i++) { // Start from index 1 to skip the secret word
-        //     if (!parts[i].equals(i-1+"::")) {
+        //     if (!parts[i].equals(i+"::")) {
         //         isNewGame = false;
         //         break;
         //     }
         // }
+        String[] parts = gameState.split(";"); // -1:secret:secret;0:guess:color;1::;2::;3::;4::;5::
+        if (parts[1].equals("0::") || !parts[6].equals("5::")) isNewGame = true;
 
-        if (isNewGame) {
-            wordleBoard = generateWordleBoard(); // For a new game
-        } else {
-            wordleBoard = generateWordleBoardWithState(gameState); // For a returning player
-        }
+        if (isNewGame) { wordleBoard = generateWordleBoard(); } // For a new game 
+        else { wordleBoard = generateWordleBoardWithState(gameState); } // For a returning player
 
         String keyboard = generateKeyboard();
         String styles = generateStyles();
