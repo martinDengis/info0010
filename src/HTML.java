@@ -98,26 +98,29 @@ public class HTML {
                             "function sendGuess(guess) {" +
                             "    const isJSEnabled = typeof window.addEventListener === 'function';" +
                             "    const headers = new Headers({"+
-                            "        'Content-Type': 'application/json',"+
                             "        'JS-Enabled': isJSEnabled.toString(),"+
                             "        'Row': currentRow.toString()"+
                             "    });"+
                             "    console.log('Sending guess:', guess, 'Row:', currentRow);" + // Console log for debugging
-                            "    fetch(`guess?word=${guess}`, {" +
+                            "    fetch(`/play.html/guess?word=${guess}`, {" +
                             "        method: 'GET'," +
                             "        headers: headers" +
                             "    })" +
                             "    .then(response => response.json())" + // Processing text response
+                            "    .then(data => {" +
+                            "        console.log(data);" +
+                            "        return data;" +
+                            "    })" +
                             "    .then(processServerResponse)" +
                             "    .catch(error => {" +
-                            "        console.error('Error:', error);" +
+                            // "        console.error('Error:', error);" +
                             "        alert('An error occurred while submitting the guess.');" +
                             "    });" +
                             "}";
 
         String processServerResponse =
-                            "function processServerResponse(data) {"+
-                            "   var response = JSON.parse(data);" + // Assuming 'data' is a JSON string from the server
+                            "function processServerResponse(response) {"+
+                            // "   var response = JSON.parse(data);" + // Assuming 'data' is a JSON string from the server
                             "   switch(response.Status) {" +
                             "       case 'Invalid':" +
                             "           alert(response.Message);" +
@@ -238,7 +241,7 @@ public class HTML {
             "<meta charset=\"UTF-8\">\n" +
             "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
             "<link rel=\"icon\" type=\"image/x-icon\" href=\"data:image/x-icon;,\">\n" + // Empty favicon
-            "<title>WordleGame</title>\n" +
+            "<title>" + title + "</title>\n" +
             "<style>" + styles + "</style>\n" +
             "</head>\n" +
             "<body>\n" +

@@ -48,7 +48,7 @@ public class WordleServer {
     }
     public static SessionData getSessionData(String id) { return SESSIONS.get(id); }
     public static String getFullGameState(String id) { return SESSIONS.get(id).getFullGameState(); }
-    public static String getCurrGameState(String id) { return SESSIONS.get(id).getCurrGameState(); }
+    public static String getCurrGameState(String id, int currGS) { return SESSIONS.get(id).getCurrGameState(currGS); }
     public static String getSecretWord(String id) { return SESSIONS.get(id).getSecretWord(); }
     public static void removeSession(String id) { SESSIONS.remove(id); }
     public static void addGameState(String id, String guess, String color) { SESSIONS.get(id).addGameState(guess, color); }

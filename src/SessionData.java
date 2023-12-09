@@ -32,10 +32,10 @@ public class SessionData {
     }
 
     // Getters
-    public int getAttempt() { return attempt; }
-    public long getLastActivityTime() { return lastActivityTime; }
-    public String getStatus() { return status; }
-    public String getSecretWord() { return secretWord; }
+    public int getAttempt() { return this.attempt; }
+    public long getLastActivityTime() { return this.lastActivityTime; }
+    public String getStatus() { return this.status; }
+    public String getSecretWord() { return this.secretWord; }
     public String getFullGameState() {
         String fullGameState = "";
         for (int i = -1; i < 6; i++) {
@@ -44,9 +44,9 @@ public class SessionData {
         }
         return fullGameState;
     }
-    public String getCurrGameState() {
-        List<String> data = gameState.get(this.attempt);
-        return this.attempt + ":" + data.get(0) + ":" + data.get(1);
+    public String getCurrGameState(int currGS) {
+        List<String> data = gameState.get(currGS);
+        return currGS + ":" + data.get(0) + ":" + data.get(1);
     }
     
     // Setters
