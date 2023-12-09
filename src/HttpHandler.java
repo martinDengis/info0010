@@ -57,12 +57,14 @@ public class HttpHandler implements Runnable {
 
     // PROCESSORS METHODS ------------------------------------------------------------
     /**
-     * Handles an HTTP request.
+     * Handles the HTTP request received by the server.
+     * Validates the request format, generates a new session if necessary,
+     * retrieves the guess for a POST request, checks the validity of the guess,
+     * checks if the game is over, and responds accordingly.
      *
      * @param requestLine The request line of the HTTP request.
      * @param reader      The BufferedReader used to read the request body.
      * @param writer      The PrintWriter used to send the HTTP response.
-     * @return true if the request was successfully handled, false otherwise.
      */
     private void handleRequest(String requestLine, BufferedReader reader, PrintWriter writer) {
         // Validate the HTTP request format
@@ -77,12 +79,25 @@ public class HttpHandler implements Runnable {
             // Create a new entry in the sessions mapping
             SessionData sessionData = new SessionData(generateSecretWord());
             WordleServer.addSession(this.sessionID, sessionData);
-            System.err.println("New session added to mapping:" + this.sessionID);
+            System.out.println("New session added to mapping:" + this.sessionID);
+        }
+
+        // Retrieve guess for POST and Check validity
+        if (this.method.equals("POST")) {
+            this.guess = getBody(reader).split("=")[1].toLowerCase();
+            if (!isGuessValid(this.guess)) {
+                String response = "{\"Status\": \"Invalid\", \"Message\": \"Word does not exist. Try another.\"}";
+                sendHttpResponse(writer, 200, "application/json", response);
+                if (!this.sessionID.isEmpty() && WordleServer.hasSession(sessionID))
+                    WordleServer.getSessionData(this.sessionID).decrementAttempts();
+                return;
+            }
+            System.out.println("Guess: " + this.guess);
         }
 
         // Check if the game is over
         int currAttempt = WordleServer.getSessionData(this.sessionID).getAttempt();
-        if (currAttempt > 5) {
+        if (currAttempt > WordleServer.getMaxAttempts()) {
             WordleServer.getSessionData(this.sessionID).setStatus("Gameover");
             String response = "{\"Status\": \"Gameover\", \"Message\":\"" + WordleServer.getSecretWord(this.sessionID) +"\"}";
             sendHttpResponse(writer, 200, "application/json", response);
@@ -96,13 +111,12 @@ public class HttpHandler implements Runnable {
     }
 
     /**
-     * Validates the format of the HTTP request and its headers.
-     * Called by handleRequest method.
+     * Checks the format of the HTTP request and headers.
      * 
-     * @param requestLine The HTTP request line.
-     * @param reader      The BufferedReader to read the HTTP headers.
-     * @param writer      The PrintWriter to send error responses.
-     * @return True if the format is valid, false otherwise.
+     * @param requestLine the HTTP request line
+     * @param reader the BufferedReader to read the headers from
+     * @param writer the PrintWriter to send error responses to
+     * @return true if the format is valid, false otherwise
      */
     private boolean formatCheck(String requestLine, BufferedReader reader, PrintWriter writer) {
         // Validate the HTTP request line
@@ -115,7 +129,7 @@ public class HttpHandler implements Runnable {
             while ((line = reader.readLine()) != null && !line.isEmpty()) {
                 // Invalid header format
                 if (!line.matches("^[^:]+: .*$")) {
-                    System.err.println("117 formatCheck: " + line + " :: Invalid header format");
+                    System.err.println(line + " :: Invalid header format");
                     sendErrorResponse(writer, 400);
                     return false;
                 } 
@@ -134,18 +148,17 @@ public class HttpHandler implements Runnable {
     }
 
     /**
-     * Validates the format of the HTTP request line.
-     * Called by formatCheck method.
+     * Checks the validity of the request line in an HTTP request.
      * 
-     * @param requestLine The HTTP request line.
-     * @param reader      The BufferedReader to read the HTTP headers.
-     * @param writer      The PrintWriter to send error responses.
-     * @return True if the format is valid, false otherwise.
+     * @param requestLine the request line to be checked
+     * @param reader the BufferedReader used to read the request
+     * @param writer the PrintWriter used to send responses
+     * @return true if the request line is valid, false otherwise
      */
     public boolean requestLineCheck(String requestLine, BufferedReader reader, PrintWriter writer) {
         if (requestLine == null || !requestLine.matches("^[A-Z]+ .* HTTP/1\\.1$")) {
             // Invalid request format
-            System.err.println("147 requestLineCheck : " + requestLine + " ::Invalid request format");
+            System.err.println(requestLine + " ::Invalid request format");
             sendErrorResponse(writer, 400);
             return false;
         } 
@@ -158,17 +171,21 @@ public class HttpHandler implements Runnable {
 
             // Check if the HTTP method is allowed
             if (!isMethodAllowed(method)) {
-                System.err.println("160 requestLineCheck : " + method + " ::Invalid HTTP method");
+                System.err.println(method + " ::Invalid HTTP method");
                 sendErrorResponse(writer, 405);
+                return false;
+            } else if (!method.equals("GET") || !method.equals("HEAD") || !method.equals("POST")) {
+                System.err.println(method + " ::Invalid HTTP method");
+                sendErrorResponse(writer, 501);
                 return false;
             }
             
             // Check if the URI is valid
-            if (!isURIValid(uri, writer)) return false;
+            if (!isURIValid(uri, writer, reader)) return false;
 
             // Check if the HTTP version is supported
             if (!version.equals("HTTP/1.1")) {
-                System.err.println("170 requestLineCheck : " + version + " ::Invalid HTTP version");
+                System.err.println(version + " ::Invalid HTTP version");
                 sendErrorResponse(writer, 505);
                 return false;
             }
@@ -177,17 +194,16 @@ public class HttpHandler implements Runnable {
     }
 
     /**
-     * Checks the headers of the HTTP request.
-     * Called by formatCheck method.
+     * Checks the headers of the HTTP request and performs necessary validations.
      * 
-     * @param writer the PrintWriter used to send the response
-     * @return true if the headers are valid, false otherwise
+     * @param writer The PrintWriter object used to send responses.
+     * @return true if the headers are valid, false otherwise.
      */
     public boolean headersCheck(PrintWriter writer) {
         // Retrieve content length
         if (!headers.containsKey("Content-Length") && !this.method.equals("GET") && !this.method.equals("HEAD")) {
             // Content-Length header not found
-            System.err.println("189 headersCheck : " + method + " ::Content-Length header not found");
+            System.err.println(method + " ::Content-Length header not found");
             sendErrorResponse(writer, 411);
             return false;
         } 
@@ -196,7 +212,7 @@ public class HttpHandler implements Runnable {
             this.buffer = new char[length];
         }
 
-        if (headers.get("Transfer-Encoding") != null && headers.get("Transfer-Encoding").contains("chunked"))
+        if (headers.containsKey("Transfer-Encoding") && headers.get("Transfer-Encoding").contains("chunked"))
             this.isChunked = true;
 
         // Process headers in search of existing session
@@ -204,20 +220,19 @@ public class HttpHandler implements Runnable {
             // Extract the session ID from the Cookie header
             String[] session = headers.get("Cookie").split("=", 2);
             this.sessionID = session[1];
-            System.err.println("User id: " + sessionID);
+            System.out.println("User id: " + sessionID);
             if (WordleServer.hasSession(sessionID)) WordleServer.printSESSION(sessionID);
 
             // Check if the session ID is valid
             if (!sessionID.matches("^[0-9a-f\\-]+$")) {
                 // Invalid session ID
-                System.err.println("210 headersCheck : " + sessionID + " ::Invalid session ID");
+                System.err.println(sessionID + " ::Invalid session ID");
                 sendErrorResponse(writer, 400);
                 return false;
             } 
             // If sessionID exists on client but not on server, make as if new session (will override the cookie on browser)
             else if (!WordleServer.hasSession(this.sessionID)) {
                 this.newSession = true;
-                System.err.println("!!!!!!!!!!!!!!!!!!!! FALSE !!!!!!!!!!!!!!!!!!!!!");
 
                 // Create a new entry in the sessions mapping
                 SessionData sessionData = new SessionData(generateSecretWord());
@@ -241,7 +256,7 @@ public class HttpHandler implements Runnable {
         // Check if the request is an AJAX request
         if (headers.containsKey("X-Requested-With") && !headers.get("X-Requested-With").equals("XMLHttpRequest")) {
             // Invalid request format
-            System.err.println("232 headersCheck : " + headers.get("X-Requested-With") + " ::Invalid request format");
+            System.err.println("X-Requested-With: " + headers.get("X-Requested-With") + " ::Invalid request format");
             sendErrorResponse(writer, 400);
             return false;
         }
@@ -253,14 +268,14 @@ public class HttpHandler implements Runnable {
                 if (rowID != -1 && !sessionID.isEmpty()) {
                     // Check that the rowID match current attempt
                     if (rowID != WordleServer.getSessionData(this.sessionID).getAttempt()) {
-                        System.err.println("244 headersCheck : " + rowID + " ::Invalid row ID");
+                        System.err.println(rowID + " ::Invalid row ID");
                         sendErrorResponse(writer, 400);
                         return false;
                     }
                 } 
             } 
             catch (NumberFormatException e) {
-                System.err.println("251 headersCheck : " + row + " ::NumberFormatException");
+                System.err.println(row + " ::NumberFormatException");
                 sendErrorResponse(writer, 400);
                 return false;
             }
@@ -271,15 +286,14 @@ public class HttpHandler implements Runnable {
 
     /**
      * Handles the HTTP response based on the current game state and request type.
-     * If the request type is JavaScript and guess, it updates the game state, checks for a winning state,
+     * If the request type is for JavaScript and guess, it updates the game state, checks for winning or game over conditions,
      * and sends the appropriate JSON response.
-     * If the request type is not JavaScript and guess, it updates the game state, checks for a final state,
-     * and sends the appropriate HTML response.
-     * Called by handleRequest method.
+     * If the request type is not for JavaScript and guess, it updates the game state if it is a guess request,
+     * checks for winning or game over conditions, and sends the HTML response.
      *
-     * @param writer      the PrintWriter object used to send the HTTP response
-     * @param currAttempt the current attempt number
-     * @param isJSandGuess true if the request type is JavaScript and guess, false otherwise
+     * @param writer       the PrintWriter object used to send the HTTP response
+     * @param currAttempt  the current attempt number
+     * @param isJSandGuess true if the request type is for JavaScript and guess, false otherwise
      */
     public void pleaseRespond(PrintWriter writer, int currAttempt, boolean isJSandGuess) {
         // Process the request
@@ -337,11 +351,10 @@ public class HttpHandler implements Runnable {
 
     // HELPERS METHODS ------------------------------------------------------------
     /**
-     * Sends an HTTP response with the specified status code, content type, and content.
-     * Supports Chunked Transfer Encoding.
+     * Sends an HTTP response to the client.
      *
-     * @param writer      the PrintWriter used to write the response
-     * @param statusCode  the status code of the HTTP response
+     * @param writer      the PrintWriter object used to write the response to the client
+     * @param statusCode  the status code of the response
      * @param contentType the content type of the response
      * @param content     the content of the response
      */
@@ -377,15 +390,17 @@ public class HttpHandler implements Runnable {
         if (isChunked) sendContentInChunks(writer, content);
         else {
             writer.println(content);
+            System.out.println(content);
             writer.flush();
         }
 
     }
 
     /**
-     * Sends the content in chunks using Chunked Transfer Encoding.
-     *
-     * @param writer  the PrintWriter used to write the chunks
+     * Sends the content in chunks to the PrintWriter.
+     * Each chunk is of size determined by WordleServer.getMaxChunckSize().
+     * 
+     * @param writer  the PrintWriter to send the content to
      * @param content the content to be sent in chunks
      */
     private void sendContentInChunks(PrintWriter writer, String content) {
@@ -400,17 +415,17 @@ public class HttpHandler implements Runnable {
             // Convert chunkBytes back to a string for printing
             String chunk = new String(chunkBytes, StandardCharsets.UTF_8);
 
-            writer.println(Integer.toHexString(chunkBytes.length));
             System.out.println(Integer.toHexString(chunkBytes.length));
-            writer.println(chunk);
             System.out.println(chunk);
+            writer.println(Integer.toHexString(chunkBytes.length));
+            writer.println(chunk);
             writer.flush();
         }
 
         // Send a zero-size chunk to indicate the end of the content
+        System.out.println("0\r\n");
         writer.println("0");
         writer.println();
-        System.out.println("0");
         writer.flush();
     }
 
@@ -438,32 +453,36 @@ public class HttpHandler implements Runnable {
     }
 
     /**
-     * Checks if the given HTTP method is allowed.
-     * Called by requestLineCheck method.
-     *
+     * Checks if the specified HTTP method is allowed.
+     * If the method is "POST", disables JavaScript.
+     * 
      * @param method the HTTP method to check
      * @return true if the method is allowed, false otherwise
      */
     private boolean isMethodAllowed(String method) {
-        this.method = method; 
+        this.method = method;
+        if (this.method.equals("POST")) this.isJavaScriptEnabled = false;
         return HttpMethod.isMethodAllowed(method); 
     }
 
     /**
-     * Checks if the given URI is valid.
-     * Called by requestLineCheck method.
-     *
-     * @param uri the URI to check
-     * @return true if the URI is valid, false otherwise
+     * Checks if the given URI is valid and handles different types of requests.
+     * 
+     * @param uri The URI to be validated.
+     * @param writer The PrintWriter object used for writing responses.
+     * @param reader The BufferedReader object used for reading requests.
+     * @return true if the URI is valid and the request can proceed, false otherwise.
      */
-    private boolean isURIValid(String uri, PrintWriter writer) {
+    private boolean isURIValid(String uri, PrintWriter writer, BufferedReader reader) {
+        // Call for root page
         if(uri.matches("^/$")) {
-            System.err.println("430 isURIValid : " + uri + " ::Invalid URI");
+            System.out.println(uri + " ::Call for root page. Redirecting to /play.html");
             sendErrorResponse(writer, 303); // Redirect to /play.html
             return true;
         }
         else if (uri.matches("^/play\\.html$")) return true;
-        else if (uri.matches("^/play\\.html/guess\\?word=[A-Z]{5}$")) {
+        // Call for guess via GET
+        else if (uri.matches("^/play\\.html/guess\\?word=[A-Z]{5}$") && this.method.equals("GET")) {
             this.isRequestGuess = true;
             this.guess = uri.split("=")[1].toLowerCase();
 
@@ -476,23 +495,35 @@ public class HttpHandler implements Runnable {
             }
             return true;
         }
-        
+        // Call for guess via POST
+        else if (uri.matches("^/play\\.html/guess$") && this.method.equals("POST")) {
+            this.isRequestGuess = true;
+            return true;
+        }
+        // Call for favicon
+        else if (uri.matches("^/favicon.ico$")) {
+            sendErrorResponse(writer, 204);
+            return false;
+        }
+
+        // Invalid URI
+        sendErrorResponse(writer, 404);
         return false;
     }
  
     /**
-     * Checks if a given word is a valid 5-letter word that exists in the WordleWordSet.
-     * Called by isURIValid method.
-     * 
-     * @param guess the word to be checked
-     * @return true if the word is valid and exists, false otherwise
+     * Checks if a given guess is valid.
+     * A valid guess must have a length of 5 and be present in the WordleWordSet.
+     *
+     * @param guess the guess to be validated
+     * @return true if the guess is valid, false otherwise
      */
     private boolean isGuessValid(String guess) { return guess.length() == 5 && WordleWordSet.WORD_SET.contains(guess); }
 
     /**
      * Generates a secret word by randomly selecting a word from the word list.
      *
-     * @return the generated secret word
+     * @return The generated secret word.
      */
     private static String generateSecretWord() {
         ArrayList<String> wordList = new ArrayList<String>(WordleWordSet.WORD_SET);
@@ -504,9 +535,9 @@ public class HttpHandler implements Runnable {
     /**
      * Builds a response string based on the provided guess.
      * The response string consists of characters representing the correctness of each letter in the guess.
-     * The characters 'G', 'Y', and 'B' represent well-placed letters, misplaced letters, and incorrect letters respectively.
+     * The characters can be 'G' for a well-placed letter, 'Y' for a misplaced letter, or 'B' for an incorrect letter.
      *
-     * @param guess the guess made by the player
+     * @param guess the guess string to evaluate
      * @return the response string indicating the correctness of each letter in the guess
      */
     private String responseBuilder(String guess) {
@@ -558,6 +589,7 @@ public class HttpHandler implements Runnable {
     private static String getStatusMessage(int statusCode) {
         switch (statusCode) {
             case 200: return "OK";
+            case 204: return "No Content";
             case 303: return "See Other";
             case 400: return "Bad Request";
             case 404: return "Not Found";
@@ -569,14 +601,12 @@ public class HttpHandler implements Runnable {
         }
     }
 
-
-    // UNUSED METHODS ------------------------------------------------------------
     /**
-     * Reads the body of the HTTP request from the provided BufferedReader and returns it as a String.
-     *
-     * @param reader the BufferedReader used to read the request body
-     * @return the body of the HTTP request as a String
-     */
+        * Reads the body of the HTTP request from the provided BufferedReader and returns it as a String.
+        *
+        * @param reader the BufferedReader used to read the request body
+        * @return the body of the HTTP request as a String
+        */
     private String getBody(BufferedReader reader) {
         try {
             // Check if the request is chunked

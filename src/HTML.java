@@ -9,16 +9,9 @@ public class HTML {
         
         String title = "Wordle Game";
         String header = "<header><img src=\"data:image/png;base64,"+base64Image+"\" alt=\"WORDLE\"></header>";
-        
         String wordleBoard = "";
+        
         boolean isNewGame = false;
-        // String[] parts = gameState.split(";"); // either -1:secret:secret;0:guess:color;1::;2::;3::;4::;5::
-        // for (int i = 1; i < parts.length; i++) { // Start from index 1 to skip the secret word
-        //     if (!parts[i].equals(i+"::")) {
-        //         isNewGame = false;
-        //         break;
-        //     }
-        // }
         String[] parts = gameState.split(";"); // -1:secret:secret;0:guess:color;1::;2::;3::;4::;5::
         if (parts[1].equals("0::") || !parts[6].equals("5::")) isNewGame = true;
 
@@ -358,29 +351,29 @@ public class HTML {
         };
 
         StringBuilder keyboardBuilder = new StringBuilder();
-            for (String[] keyRow : keyRows) {
-                keyboardBuilder.append("<div class=\"keyboard-row\">");
-                for (String key : keyRow) {
-                    // Add the data-letter attribute to each key except special keys like '⇦' and '⏎'
-                    if (!key.equals("⇦") && !key.equals("⏎")) {
-                        keyboardBuilder.append("<button class='key' data-letter='").append(key)
-                                    .append("' onclick='keyPressed(\"").append(key).append("\")'>")
-                                    .append(key).append("</button>");
-                    } else {
-                        // Handle special keys without the data-letter attribute
-                        keyboardBuilder.append("<button class=\"key special-key\" onclick=\"")
-                                    .append(key.equals("⇦") ? "onErase()" : "onSubmitGuess()")
-                                    .append("\">").append(key).append("</button>");
-                    }
+        for (String[] keyRow : keyRows) {
+            keyboardBuilder.append("<div class=\"keyboard-row\">");
+            for (String key : keyRow) {
+                // Add the data-letter attribute to each key except special keys like '⇦' and '⏎'
+                if (!key.equals("⇦") && !key.equals("⏎")) {
+                    keyboardBuilder.append("<button class='key' data-letter='").append(key)
+                                .append("' onclick='keyPressed(\"").append(key).append("\")'>")
+                                .append(key).append("</button>");
+                } else {
+                    // Handle special keys without the data-letter attribute
+                    keyboardBuilder.append("<button class=\"key special-key\" onclick=\"")
+                                .append(key.equals("⇦") ? "onErase()" : "onSubmitGuess()")
+                                .append("\">").append(key).append("</button>");
                 }
-                keyboardBuilder.append("</div>\n");
             }
-            return keyboardBuilder.toString();
+            keyboardBuilder.append("</div>\n");
+        }
+        return keyboardBuilder.toString();
     }
 
     public String fallbackForm() {
         return "<noscript>" +
-                "<form action=\"/guess\" method=\"post\">" +
+                "<form action=\"/play.html/guess\" method=\"POST\">" +
                 "<input type=\"text\" name=\"guess\" required pattern=\"[A-Za-z]{5}\" maxlength=\"5\">" +
                 "<input type=\"submit\" value=\"Submit Guess\">" +
                 "</form>" +
