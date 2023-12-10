@@ -281,10 +281,9 @@ public class HttpHandler implements Runnable {
         if(isJSandGuess) {
             // Update game state
             String colorPattern = responseBuilder(this.guess);
-            WordleServer.addGameState(this.sessionID, this.guess, colorPattern);
+            String currGameState = currAttempt + ":" + this.guess + ":" + colorPattern; // Construct current game state before updating the server state
+            WordleServer.addGameState(this.sessionID, this.guess, colorPattern); // Now update the server state
 
-            // Retrieve the current game state -> 1:guess:color
-            String currGameState = WordleServer.getCurrGameState(this.sessionID);
 
             // Check if winning state
             if (colorPattern.equals("GGGGG")) {
@@ -451,7 +450,7 @@ public class HttpHandler implements Runnable {
             return true;
         }
         else if (uri.matches("^/play\\.html$")) return true;
-        else if (uri.matches("^/play\\.html/guess\\?word=[a-z]{5}$")) {
+        else if (uri.matches("^/play\\.html/guess\\?word=[A-Z]{5}$")) {
             this.isRequestGuess = true;
             this.guess = uri.split("=")[1].toLowerCase();
 

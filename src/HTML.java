@@ -7,7 +7,6 @@ public class HTML {
         try { base64Image = ImageEncoder.encodeImageToBase64("logo.png"); } 
         catch (IOException e) { e.printStackTrace(); } 
         
-        String title = "Wordle Game";
         String header = "<header><img src=\"data:image/png;base64,"+base64Image+"\" alt=\"WORDLE\"></header>";
         
         String wordleBoard = "";
@@ -97,17 +96,21 @@ public class HTML {
         String sendGuess =                             
                             "function sendGuess(guess) {" +
                             "    const isJSEnabled = typeof window.addEventListener === 'function';" +
-                            "    const headers = new Headers({"+
-                            "        'Content-Type': 'application/json',"+
-                            "        'JS-Enabled': isJSEnabled.toString(),"+
-                            "        'Row': currentRow.toString()"+
-                            "    });"+
+                            "    const headers = new Headers({" +
+                            "        'Content-Type': 'application/json'," +
+                            "        'JS-Enabled': isJSEnabled.toString()," +
+                            "        'Row': currentRow.toString()" +
+                            "    });" +
                             "    console.log('Sending guess:', guess, 'Row:', currentRow);" + // Console log for debugging
-                            "    fetch(`guess?word=${guess}`, {" +
+                            "    fetch(`/play.html/guess?word=${guess.toUpperCase()}`, {" + // Convert guess to uppercase
                             "        method: 'GET'," +
                             "        headers: headers" +
                             "    })" +
                             "    .then(response => response.json())" + // Processing text response
+                            ".then(data => {" +
+                            "    console.log(data);" + // Log the parsed JSON
+                            "    return data;" +
+                            "})" +
                             "    .then(processServerResponse)" +
                             "    .catch(error => {" +
                             "        console.error('Error:', error);" +
@@ -116,8 +119,7 @@ public class HTML {
                             "}";
 
         String processServerResponse =
-                            "function processServerResponse(data) {"+
-                            "   var response = JSON.parse(data);" + // Assuming 'data' is a JSON string from the server
+                            "function processServerResponse(response) {"+
                             "   switch(response.Status) {" +
                             "       case 'Invalid':" +
                             "           alert(response.Message);" +
