@@ -174,7 +174,8 @@ public class HttpHandler implements Runnable {
                 System.err.println(method + " ::Invalid HTTP method");
                 sendErrorResponse(writer, 405);
                 return false;
-            } else if (!method.equals("GET") || !method.equals("HEAD") || !method.equals("POST")) {
+            } 
+            if (!(method.equals("GET") || method.equals("HEAD") || method.equals("POST"))) {
                 System.err.println(method + " ::Invalid HTTP method");
                 sendErrorResponse(writer, 501);
                 return false;

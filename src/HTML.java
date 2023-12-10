@@ -39,6 +39,42 @@ public class HTML {
                             "   </div>" +
                             "</div>";
 
+        String fillCell = 
+                            "function fillCell(key) {" +
+                            "    const cell = document.getElementById(`cell-${currentRow}-${currentCell}`);" +
+                            "    if (cell) {" +
+                            "        cell.textContent = key;" +
+                            "        cell.classList.add('filled');" +
+                            "        cell.style.animation = 'none';" +
+                            "        setTimeout(() => {" +
+                            "            cell.style.animation = '';" +
+                            "        }, 10);" +
+                            "        currentCell++;" +
+                            "    }" +
+                            "    const allRows = document.querySelectorAll('.word-row');" +
+                            "    allRows.forEach(row => row.classList.remove('highlight-row'));" +
+                            "    const currentRowDiv = document.getElementById(`row-${currentRow}`);" +
+                            "    if (currentRowDiv) {" +
+                            "        currentRowDiv.classList.add('highlight-row');" +
+                            "    }" +
+                            "    if (currentCell === 1 && key) {" +
+                            "        const firstRowDiv = document.getElementById(`row-0`);" +
+                            "        if (firstRowDiv) {" +
+                            "            firstRowDiv.classList.add('highlight-row');" +
+                            "        }" +
+                            "    }" +
+                            "}";
+
+        String highlightCurrentRowFunction =
+                            "function highlightCurrentRow() {" +
+                            "    const allRows = document.querySelectorAll('.word-row');" +
+                            "    allRows.forEach(row => row.classList.remove('highlight-row'));" +
+                            "    const currentRowDiv = document.getElementById(`row-${currentRow}`);" +
+                            "    if (currentRowDiv) {" +
+                            "        currentRowDiv.classList.add('highlight-row');" +
+                            "    }" +
+                            "}";
+
         String removeLastLetterFunction = 
                             "function removeLastLetter() {" +
                             "    if (currentCell > 0) {" +
@@ -142,32 +178,55 @@ public class HTML {
 
         String updateBoardWithFeedback =
                             "function updateBoardWithFeedback(feedback) {" +
+                            "    const alreadyUsedKeys = {};" + // Track used keys
                             "    for (let i = 0; i < feedback.length; i++) {" +
                             "        const cell = document.getElementById(`cell-${currentRow}-${i}`);" +
                             "        const keyLetter = currentGuess[i].toUpperCase();" +
-                            "        const key = document.querySelector(`.key[data-letter='${keyLetter}']`);" +
+                            "        if (!alreadyUsedKeys[keyLetter]) {" + // Initialize tracking object for each letter
+                            "            alreadyUsedKeys[keyLetter] = { 'green': 0, 'yellow': 0, 'darkened': 0 };" +
+                            "        }" +
                             "        if (cell) {" +
                             "            cell.className = 'word-cell'; " + // Reset to default class
                             "            switch (feedback.charAt(i)) {" +
                             "                case 'G':" +
                             "                    cell.classList.add('green');" +
-                            "                    if (key) key.classList.add('green');" +
+                            "                    alreadyUsedKeys[keyLetter].green++;" +
                             "                    break;" +
                             "                case 'Y':" +
                             "                    cell.classList.add('yellow');" +
-                            "                    if (key) key.classList.add('yellow');" +
+                            "                    alreadyUsedKeys[keyLetter].yellow++;" +
                             "                    break;" +
                             "                case 'B':" +
                             "                    cell.classList.add('darkened');" +
-                            "                    if (key) key.classList.add('darkened');" +
+                            "                    alreadyUsedKeys[keyLetter].darkened++;" +
                             "                    break;" +
                             "            }" +
                             "        }" +
                             "    }" +
+                            "    updateKeyboard(alreadyUsedKeys);" + // Call to update keyboard
                             "    currentRow++;" + // Prepare for the next guess
                             "    currentGuess = '';" +
                             "    currentCell = 0;" +
+                            "    highlightCurrentRow();" +
+                            "};";
+                        
+        String updateKeyboard =
+                            "function updateKeyboard(alreadyUsedKeys) {" +
+                            "    for (const [keyLetter, counts] of Object.entries(alreadyUsedKeys)) {" +
+                            "        const key = document.querySelector(`.key[data-letter='${keyLetter}']`);" +
+                            "        if (key) {" +
+                            "            key.classList.remove('green', 'yellow', 'darkened');" + // Reset color classes
+                            "            if (counts.green > 0) {" +
+                            "                key.classList.add('green');" +
+                            "            } else if (counts.yellow > 0) {" +
+                            "                key.classList.add('yellow');" +
+                            "            } else if (counts.darkened > 0) {" +
+                            "                key.classList.add('darkened');" +
+                            "            }" +
+                            "        }" +
+                            "    }" +
                             "}";
+                        
         
         String showModalFunction =
                             "function showModal(message) {" +
@@ -201,20 +260,8 @@ public class HTML {
                         
 
         String script = "<script>" +
-                        "function fillCell(key) {" +
-                        "    if (currentCell < 5) {" +
-                        "        const cell = document.getElementById(`cell-${currentRow}-${currentCell}`);" +
-                        "        if (cell) {" +
-                        "            cell.textContent = key;" +
-                        "            cell.classList.add('filled');" +
-                        "            cell.style.animation = 'none';" + 
-                        "            setTimeout(() => {" +
-                        "            cell.style.animation = ''; " +
-                        "            }, 10);" +
-                        "            currentCell++;" +
-                        "        }" +
-                        "    }" +
-                        "}" +
+                        highlightCurrentRowFunction +
+                        fillCell + 
                         removeLastLetterFunction +
                         onEraseFunction + 
                         keyPressedFunction +
@@ -224,6 +271,7 @@ public class HTML {
                         processServerResponse +
                         sendGuess +
                         onSubmitGuess + 
+                        updateKeyboard +
                         updateBoardWithFeedback +
                         closeModalFunction + 
                         //restartGameFunction +
@@ -234,6 +282,7 @@ public class HTML {
                         "    fallbackForm.style.display = 'none';" +
                         "  }" +
                         "});" +
+                        "highlightCurrentRow();" +
                         "</script>";
 
         return "<!DOCTYPE html>\n" +
@@ -300,33 +349,27 @@ public class HTML {
                 secretWord = parts[2]; // Assuming the secret word is always present
                 continue; // Skip further processing for the secret word row
             }
+            
+            boolean isCurrentRow = i-1 == lastFilledRow + 1; // Check if this is the current row
+            String rowClass = isCurrentRow ? "word-row highlight-row" : "word-row";
 
-            boardBuilder.append("<div class=\"word-row\" id=\"row-").append(i-1).append("\">");
-    
-            if (guess.isEmpty()) {
-                // Generate empty cells for the row
-                for (int j = 0; j < 5; j++)
-                    boardBuilder.append("<div class=\"word-cell\" id=\"cell-").append(i-1).append("-").append(j).append("\"></div>");
+            boardBuilder.append("<div class=\"").append(rowClass).append("\" id=\"row-").append(i-1).append("\">");
 
-            } else {
-                lastFilledRow = i-1;
-                // Generate cells with guesses and color
-                for (int j = 0; j < guess.length(); j++) {
-                    char letter = guess.charAt(j);
-                    char colorCode = (color.length() > j) ? color.charAt(j) : ' ';
-                    String colorClass = getColorClass(colorCode);
-                    boardBuilder.append("<div class=\"word-cell ")
-                             .append(colorClass)
-                             .append("\" id=\"cell-")
-                             .append(i-1)
-                             .append("-")
-                             .append(j)
-                             .append("\">")
-                             .append(letter)
-                             .append("</div>");
-                }
+            for (int j = 0; j < 5; j++) {
+                char letter = guess.length() > j ? guess.charAt(j) : ' ';
+                char colorCode = color.length() > j ? color.charAt(j) : ' ';
+                String colorClass = getColorClass(colorCode);
+                String cellContent = letter != ' ' ? String.valueOf(letter) : "";
+                String cellClass = "word-cell" + (colorClass.isEmpty() ? "" : " " + colorClass);
+
+                boardBuilder.append("<div class=\"" + cellClass + "\" id=\"cell-")
+                            .append(i-1)
+                            .append("-")
+                            .append(j)
+                            .append("\">")
+                            .append(cellContent)
+                            .append("</div>");
             }
-
             boardBuilder.append("</div>");
 
             // Check for win condition
@@ -461,6 +504,11 @@ public class HTML {
                 ".word-cell.green { background-color: #6aaa64; }" +
                 ".word-cell.yellow { background-color: #c9b458; }" +
                 ".word-cell.darkened { background-color: #262626; }" +
+                ".highlight-row {" +
+                "   width: 50%;" +
+                "   border: 2px solid rgba(255, 255, 255, 0.4); /* Light border for highlighting */" +
+                "   border-radius: 10px; /* Rounded corners for the highlight */" +
+                "}" +
                 ".modal {" +
                 "   display: none;" +
                 "   position: fixed;" + 
