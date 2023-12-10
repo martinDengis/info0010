@@ -46,7 +46,7 @@ public class HTML {
                             "<div id='gameModal' class='modal'>" +
                             "   <div class='modal-content'>" +
                             "       <span class='close'>&times;</span>" +
-                            "       <p id='modalText'></p>" +
+                            "       <div id='modalText'></div>" +
                             "   </div>" +
                             "</div>";
 
@@ -245,29 +245,29 @@ public class HTML {
                             "  modalText.textContent = message;" +
                             "  gameModal.style.display = 'block';" +
                             "}";
-                        
-        String userWonFunction =
+        
+        String userWonFunction =                  
                             "function userWon() {" +
-                            "  showModal('YOU WON!');" +
+                            "    showModal('<p>Congratulations, You Won!</p><button onclick=\'restartGame()\'>Restart Game</button>');" +
                             "}";
-                        
-        String userLostFunction =
+
+        String userLostFunction =                     
                             "function userLost(secretWord) {" +
-                            "  showModal('GAME OVER. Secret word = ' + secretWord);" +
+                            "    showModal('<p>GAME OVER. Secret word was ' + secretWord + '</p><button onclick=\'restartGame()\'>Restart Game</button>');" +
                             "}";
-                        
+        
+        String restartGameFunction = 
+                            "function restartGame() {" +
+                            "    fetch('/play.html/reset', { method: 'GET' })" +
+                            "    .then(() => window.location.reload());" +
+                            "}";                   
+
         String closeModalFunction =
                             "var span = document.getElementsByClassName('close')[0];" +
                             "span.onclick = function() {" +
                             "  var gameModal = document.getElementById('gameModal');" +
                             "  gameModal.style.display = 'none';" +
-                            "};";
-                        
-        // String restartGameFunction =
-        //                     "function restartGame() {" +
-        //                     "  // Code to reset the game goes here" +
-        //                     "}";
-                        
+                            "};"; 
 
         String script = "<script>" +
                         highlightCurrentRowFunction +
@@ -284,7 +284,7 @@ public class HTML {
                         updateKeyboard +
                         updateBoardWithFeedback +
                         closeModalFunction + 
-                        //restartGameFunction +
+                        restartGameFunction +
                         keydownEventListener +
                         "document.addEventListener('DOMContentLoaded', (event) => {" + // Fallback form
                         "  var fallbackForm = document.getElementById('fallbackForm');" +
@@ -399,9 +399,11 @@ public class HTML {
 
         if (gameEnded) {
             String modalMessage = playerWon ? "Congratulations, You Won!" : "Game Over. The correct word was: " + secretWord.toUpperCase();
-            boardBuilder.append("<div class=\"modal\" style=\"display: block;\">")
+            boardBuilder.append("<form action='/reset' method='post'>")
+                        .append("<div class=\"modal\" style=\"display: block;\">")
                         .append("<p>").append(modalMessage).append("</p>")
-                        .append("</div>");
+                        .append("<input type='submit' value='Restart Game'>")
+                        .append("</div></form>");
         }
 
         // Update currentRow and currentGuess in the script
