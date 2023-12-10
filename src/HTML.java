@@ -4,13 +4,18 @@ import java.io.IOException;
  * The HTML class is responsible for generating the HTML page for the Wordle game.
  */
 public class HTML {
+    
+    public String generateWordlePage(String gameState) {
+        // Call the overloaded method with an empty error message
+        return generateWordlePage(gameState, "");
+    }
     /**
      * Method for generating the HTML page for the Wordle game.
      * 
      * @param gameState the full game state for current session 
      * @return the HTML page as a String
      */
-    public String generateWordlePage(String gameState) { // TODO generateErrorPage(getStatusMessage)
+    public String generateWordlePage(String gameState, String errorMessage) { // TODO generateErrorPage(getStatusMessage)
         // Image to base64
         String base64Image = "";
         try { base64Image = ImageEncoder.encodeImageToBase64("logo.png"); } 
@@ -26,6 +31,12 @@ public class HTML {
 
         if (isNewGame) { wordleBoard = generateWordleBoard(); } // For a new game 
         else { wordleBoard = generateWordleBoardWithState(gameState); } // For a returning player
+
+        String errorHtml = "";
+        if (errorMessage != null && !errorMessage.isEmpty()) {
+            // Generate HTML for displaying the error message
+            errorHtml = "<div class=\"error-message\">" + errorMessage + "</div>";
+        }
 
         String keyboard = generateKeyboard();
         String styles = generateStyles();
@@ -227,7 +238,6 @@ public class HTML {
                             "    }" +
                             "}";
                         
-        
         String showModalFunction =
                             "function showModal(message) {" +
                             "  var gameModal = document.getElementById('gameModal');" +
@@ -296,6 +306,7 @@ public class HTML {
             "</head>\n" +
             "<body>\n" +
             header +
+            errorHtml + 
             "<div id=\"wordle-board\">" + wordleBoard + "</div>\n" +
             "<div id=\"keyboard\">" + keyboard + "</div>\n" +
             fallbackForm +
@@ -333,6 +344,7 @@ public class HTML {
      * @return the generated Wordle board as a string
      */
     private String generateWordleBoardWithState(String gameState) {
+        System.out.println("debug_html_GameState: " + gameState);
         StringBuilder boardBuilder = new StringBuilder();
         String[] tries = gameState.split(";");
         int lastFilledRow = -1;
@@ -348,6 +360,10 @@ public class HTML {
             if (i == 0) { // Handling the secret word
                 secretWord = parts[2]; // Assuming the secret word is always present
                 continue; // Skip further processing for the secret word row
+            }
+
+            if (!guess.isEmpty() && !color.isEmpty()) {
+                lastFilledRow = i - 1; // Update last filled row
             }
             
             boolean isCurrentRow = i-1 == lastFilledRow + 1; // Check if this is the current row
@@ -475,6 +491,9 @@ public class HTML {
                 "   margin: 2px;" +
                 "   animation: popIn 0.3s;" +
                 "}" +
+                ".error-message{" +
+                "   text-align: center;"+
+                "}" +
                 "@keyframes popIn {" +
                 "   0% { transform: scale(0); }" +
                 "   50% { transform: scale(1.2); }" +
@@ -505,7 +524,7 @@ public class HTML {
                 ".word-cell.yellow { background-color: #c9b458; }" +
                 ".word-cell.darkened { background-color: #262626; }" +
                 ".highlight-row {" +
-                "   width: 50%;" +
+                "   box-sizing: border-box;" +
                 "   border: 2px solid rgba(255, 255, 255, 0.4); /* Light border for highlighting */" +
                 "   border-radius: 10px; /* Rounded corners for the highlight */" +
                 "}" +

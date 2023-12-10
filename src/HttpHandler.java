@@ -86,10 +86,20 @@ public class HttpHandler implements Runnable {
         if (this.method.equals("POST")) {
             this.guess = getBody(reader).split("=")[1].toLowerCase();
             if (!isGuessValid(this.guess)) {
-                String response = "{\"Status\": \"Invalid\", \"Message\": \"Word does not exist. Try another.\"}";
-                sendHttpResponse(writer, 200, "application/json", response);
-                if (!this.sessionID.isEmpty() && WordleServer.hasSession(sessionID))
-                    WordleServer.getSessionData(this.sessionID).decrementAttempts();
+                // Generate the full game state
+                String fullGameState = WordleServer.getFullGameState(this.sessionID);
+                // Generate the HTML page with the error message
+                HTML htmlGenerator = new HTML();
+                String errorMessage = "Word does not exist. Try another.";
+                System.out.println("debug1_GameState: " + fullGameState);
+                String response = htmlGenerator.generateWordlePage(fullGameState, errorMessage);
+                sendHttpResponse(writer, 200, "text/html", response);
+                // if (!this.sessionID.isEmpty() && WordleServer.hasSession(sessionID))
+                //     WordleServer.getSessionData(this.sessionID).decrementAttempts();
+                
+                System.out.println("debug2_attempt: " + WordleServer.getSessionData(this.sessionID).getAttempt());
+
+                System.out.println("debug2_GameState: " + fullGameState);
                 return;
             }
             System.out.println("Guess: " + this.guess);
@@ -97,6 +107,7 @@ public class HttpHandler implements Runnable {
 
         // Check if the game is over
         int currAttempt = WordleServer.getSessionData(this.sessionID).getAttempt();
+        System.out.println("DEBUG_currAttempt: " + currAttempt);
         if (currAttempt > WordleServer.getMaxAttempts()) {
             WordleServer.getSessionData(this.sessionID).setStatus("Gameover");
             String response = "{\"Status\": \"Gameover\", \"Message\":\"" + WordleServer.getSecretWord(this.sessionID) +"\"}";
@@ -338,6 +349,8 @@ public class HttpHandler implements Runnable {
             // Retrieve the full game state
             // -1:secret:secret;0:guess:color;1:guess:color;2:guess:color;3:guess:color;4:guess:color;5:guess:color;
             String fullGameState = WordleServer.getFullGameState(this.sessionID);
+            System.out.println("DEBUG_ID_gamestate: " + fullGameState);
+
 
             // Check if final state
             if (fullGameState.contains("GGGGG")) WordleServer.getSessionData(this.sessionID).setStatus("Win");
