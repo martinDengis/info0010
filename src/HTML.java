@@ -180,8 +180,7 @@ public class HTML {
                             "           break;" +
                             "       case 'Playing':" +
                             "           var parts = response.Message.split(':');" +
-                            "           updateBoardWithFeedback(parts[2]);"+ // Assuming the feedback is in the third part
-                            "           break;" +
+                            "           updateBoardWithFeedback(parts[2]);"+
                             "       default:" +
                             "           console.error('Unknown status from server');" +
                             "    }"+
@@ -242,19 +241,19 @@ public class HTML {
                             "function showModal(message) {" +
                             "  var gameModal = document.getElementById('gameModal');" +
                             "  var modalText = document.getElementById('modalText');" +
-                            "  modalText.textContent = message;" +
+                            "  modalText.innerHTML = message;" +
                             "  gameModal.style.display = 'block';" +
                             "}";
         
-        String userWonFunction =                  
+        String userWonFunction = 
                             "function userWon() {" +
-                            "    showModal('<p>Congratulations, You Won!</p><button onclick=\'restartGame()\'>Restart Game</button>');" +
+                            "    showModal('<p>Congratulations, You Won!</p><button onclick=\"restartGame()\">Restart Game</button>');" +
                             "}";
-
-        String userLostFunction =                     
+                        
+        String userLostFunction = 
                             "function userLost(secretWord) {" +
-                            "    showModal('<p>GAME OVER. Secret word was ' + secretWord + '</p><button onclick=\'restartGame()\'>Restart Game</button>');" +
-                            "}";
+                            "    showModal('<p>GAME OVER. Secret word was ' + secretWord + '</p><button onclick=\"restartGame()\">Restart Game</button>');" +
+                            "}";         
         
         String restartGameFunction = 
                             "function restartGame() {" +
@@ -344,14 +343,14 @@ public class HTML {
      * @return the generated Wordle board as a string
      */
     private String generateWordleBoardWithState(String gameState) {
-        System.out.println("debug_html_GameState: " + gameState);
         StringBuilder boardBuilder = new StringBuilder();
         String[] tries = gameState.split(";");
         int lastFilledRow = -1;
         boolean gameEnded = false;
         boolean playerWon = false;
         String secretWord = "";
-    
+        System.out.println("tries length: " + tries.length);
+
         for (int i = 0; i < tries.length; i++) {
             String[] parts = tries[i].split(":");
             String guess = (parts.length > 1) ? parts[1].toUpperCase() : "";
@@ -394,12 +393,14 @@ public class HTML {
                 playerWon = true;
             }
         }
-    
+        
+        System.out.println("lastFilledRow: " + lastFilledRow);
+
         if (!gameEnded && lastFilledRow == 5) gameEnded = true;
 
         if (gameEnded) {
             String modalMessage = playerWon ? "Congratulations, You Won!" : "Game Over. The correct word was: " + secretWord.toUpperCase();
-            boardBuilder.append("<form action='/reset' method='post'>")
+            boardBuilder.append("<form action='/restart' method='post'>")
                         .append("<div class=\"modal\" style=\"display: block;\">")
                         .append("<p>").append(modalMessage).append("</p>")
                         .append("<input type='submit' value='Restart Game'>")

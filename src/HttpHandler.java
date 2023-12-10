@@ -519,6 +519,13 @@ public class HttpHandler implements Runnable {
             sendErrorResponse(writer, 204);
             return false;
         }
+        else if (uri.matches("^/play\\.html/restart$|^/restart$")) {
+            System.out.println(uri + " ::Call for game restart");
+            WordleServer.removeSession(this.sessionID);
+            this.sessionID = "";
+            sendErrorResponse(writer, 303);
+            return false;
+        }
 
         // Invalid URI
         sendErrorResponse(writer, 404);
