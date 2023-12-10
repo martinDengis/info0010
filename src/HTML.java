@@ -349,17 +349,12 @@ public class HTML {
         boolean gameEnded = false;
         boolean playerWon = false;
         String secretWord = "";
-        System.out.println("tries length: " + tries.length);
+        System.out.println("game state: " + gameState);
 
-        for (int i = 0; i < tries.length; i++) {
+        for (int i = 1; i < tries.length; i++) {
             String[] parts = tries[i].split(":");
             String guess = (parts.length > 1) ? parts[1].toUpperCase() : "";
             String color = (parts.length > 2) ? parts[2] : "";
-    
-            if (i == 0) { // Handling the secret word
-                secretWord = parts[2]; // Assuming the secret word is always present
-                continue; // Skip further processing for the secret word row
-            }
 
             if (!guess.isEmpty() && !color.isEmpty()) {
                 lastFilledRow = i - 1; // Update last filled row
