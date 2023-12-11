@@ -23,6 +23,7 @@ public class HttpHandler implements Runnable {
     private boolean isChunked = false;
     private boolean isRequestGuess = false;
     private boolean isJavaScriptEnabled = true;
+    private boolean keepAliveRequest = false;
     private int rowID = -1; // -1 means no rowID (initial state)
     private String sessionID = "";
     private String guess = "";
@@ -86,10 +87,20 @@ public class HttpHandler implements Runnable {
         if (this.method.equals("POST")) {
             this.guess = getBody(reader).split("=")[1].toLowerCase();
             if (!isGuessValid(this.guess)) {
-                String response = "{\"Status\": \"Invalid\", \"Message\": \"Word does not exist. Try another.\"}";
-                sendHttpResponse(writer, 200, "application/json", response);
-                if (!this.sessionID.isEmpty() && WordleServer.hasSession(sessionID))
-                    WordleServer.getSessionData(this.sessionID).decrementAttempts();
+                // Generate the full game state
+                String fullGameState = WordleServer.getFullGameState(this.sessionID);
+                // Generate the HTML page with the error message
+                HTML htmlGenerator = new HTML();
+                String errorMessage = "Word does not exist. Try another.";
+                System.out.println("debug1_GameState: " + fullGameState);
+                String response = htmlGenerator.generateWordlePage(fullGameState, errorMessage);
+                sendHttpResponse(writer, 200, "text/html", response);
+                // if (!this.sessionID.isEmpty() && WordleServer.hasSession(sessionID))
+                //     WordleServer.getSessionData(this.sessionID).decrementAttempts();
+
+                System.out.println("debug2_attempt: " + WordleServer.getSessionData(this.sessionID).getAttempt());
+                System.out.println("debug2_GameState: " + fullGameState);
+
                 return;
             }
             System.out.println("Guess: " + this.guess);
@@ -97,6 +108,7 @@ public class HttpHandler implements Runnable {
 
         // Check if the game is over
         int currAttempt = WordleServer.getSessionData(this.sessionID).getAttempt();
+        System.out.println("DEBUG_currAttempt: " + currAttempt);
         if (currAttempt > WordleServer.getMaxAttempts()) {
             WordleServer.getSessionData(this.sessionID).setStatus("Gameover");
             String response = "{\"Status\": \"Gameover\", \"Message\":\"" + WordleServer.getSecretWord(this.sessionID) +"\"}";
@@ -174,7 +186,8 @@ public class HttpHandler implements Runnable {
                 System.err.println(method + " ::Invalid HTTP method");
                 sendErrorResponse(writer, 405);
                 return false;
-            } else if (!method.equals("GET") && !method.equals("POST")) {
+            } 
+            if (!(method.equals("GET") || method.equals("HEAD") || method.equals("POST"))) {
                 System.err.println(method + " ::Invalid HTTP method");
                 sendErrorResponse(writer, 501);
                 return false;
@@ -211,9 +224,13 @@ public class HttpHandler implements Runnable {
             int length = Integer.parseInt(headers.get("Content-Length"));
             this.buffer = new char[length];
         }
-
+        
+        // Check if the request is chunked
         if (headers.containsKey("Transfer-Encoding") && headers.get("Transfer-Encoding").contains("chunked"))
             this.isChunked = true;
+        // Ensure connection closes
+        if (headers.containsKey("Connection") && headers.get("Connection").equals("keep-alive"))
+            this.keepAliveRequest = true;
 
         // Process headers in search of existing session
         if (headers.containsKey("Cookie")) {
@@ -245,7 +262,7 @@ public class HttpHandler implements Runnable {
             String status = WordleServer.getSessionData(this.sessionID).getStatus();
             if(isExpired || status.equals("Gameover") || status.equals("Win")) {
                 WordleServer.removeSession(this.sessionID);
-                this.sessionID = "";    // Good behaviour ? Will start a new game but should identify this case to display a message
+                this.sessionID = "";
             }
         }
 
@@ -261,6 +278,7 @@ public class HttpHandler implements Runnable {
             return false;
         }
 
+        // Check if mismatch exists between rowID submitted by browser and current attempt
         if (headers.containsKey("Row")) {
             String row = headers.get("Row");
             try {
@@ -337,6 +355,7 @@ public class HttpHandler implements Runnable {
             // Retrieve the full game state
             // -1:secret:secret;0:guess:color;1:guess:color;2:guess:color;3:guess:color;4:guess:color;5:guess:color;
             String fullGameState = WordleServer.getFullGameState(this.sessionID);
+            System.out.println("DEBUG_ID_gamestate: " + fullGameState);
 
             // Check if final state
             if (fullGameState.contains("GGGGG")) WordleServer.getSessionData(this.sessionID).setStatus("Win");
@@ -373,6 +392,7 @@ public class HttpHandler implements Runnable {
         if (isChunked) responseHeaders.put("Transfer-Encoding", "chunked");
         else responseHeaders.put("Content-Length", String.valueOf(contentLength));
         if (this.newSession) responseHeaders.put("Set-Cookie", "SESSID=" + this.sessionID + "; path=/; Max-Age=600");
+        if(this.keepAliveRequest) responseHeaders.put("Connection", "close");
         responseHeaders.put("Date", new Date().toString());
         responseHeaders.put("Server", String.valueOf(this.serverID));
 
@@ -393,7 +413,6 @@ public class HttpHandler implements Runnable {
             System.out.println(content);
             writer.flush();
         }
-
     }
 
     /**
@@ -438,14 +457,9 @@ public class HttpHandler implements Runnable {
     private void sendErrorResponse(PrintWriter writer, int statusCode) {
         String statusMessage = getStatusMessage(statusCode);
 
-        // HTML htmlGenerator = new HTML();
-        // String error = htmlGenerator.generateErrorPage(statusCode);
-        // String error = "error " + String.valueOf(statusCode);
-
         writer.println("HTTP/1.1 " + statusCode + " " + statusMessage);
         writer.println("Content-Type: text/plain");
         writer.println("Content-Length: 0");
-        // writer.println("Content-Length: " + error.length());
         if (statusCode == 303) writer.println("Location: http://localhost:8008/play.html");
         // writer.println();
         // writer.println(error);
@@ -503,6 +517,13 @@ public class HttpHandler implements Runnable {
         // Call for favicon
         else if (uri.matches("^/favicon.ico$")) {
             sendErrorResponse(writer, 204);
+            return false;
+        }
+        else if (uri.matches("^/play\\.html/restart$|^/restart$")) {
+            System.out.println(uri + " ::Call for game restart");
+            WordleServer.removeSession(this.sessionID);
+            this.sessionID = "";
+            sendErrorResponse(writer, 303);
             return false;
         }
 
