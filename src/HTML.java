@@ -26,7 +26,6 @@ public class HTML {
      * @return the HTML page as a String
      */
     public String generateWordlePage(String gameState, String errorMessage) {
-        System.out.println("DEBUG_html_gamestate: " + gameState);
         // Image to base64
         String base64Image = "";
         try { base64Image = ImageEncoder.encodeImageToBase64("logo.png"); } 
@@ -48,11 +47,11 @@ public class HTML {
         if (isNewGame) { wordleBoard = generateWordleBoard(); } // For a new game 
         else { wordleBoard = generateWordleBoardWithState(gameState); } // For a returning player
 
+        // Generate HTML for displaying the error message
         String errorHtml = "";
-        if (errorMessage != null && !errorMessage.isEmpty()) {
-            // Generate HTML for displaying the error message
+        if (errorMessage != null && !errorMessage.isEmpty())
             errorHtml = "<div class=\"error-message\">" + errorMessage + "</div>";
-        }
+
 
         String keyboard = generateKeyboard();
         String styles = generateStyles();
@@ -183,7 +182,6 @@ public class HTML {
 
         String processServerResponse =
                             "function processServerResponse(response) {"+
-                            // "   var response = JSON.parse(data);" + // Assuming 'data' is a JSON string from the server
                             "   switch(response.Status) {" +
                             "       case 'Invalid':" +
                             "           alert(response.Message);" +

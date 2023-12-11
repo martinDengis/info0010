@@ -89,18 +89,12 @@ public class HttpHandler implements Runnable {
             if (!isGuessValid(this.guess)) {
                 // Generate the full game state
                 String fullGameState = WordleServer.getFullGameState(this.sessionID);
+
                 // Generate the HTML page with the error message
                 HTML htmlGenerator = new HTML();
                 String errorMessage = "Word does not exist. Try another.";
-                System.out.println("debug1_GameState: " + fullGameState);
                 String response = htmlGenerator.generateWordlePage(fullGameState, errorMessage);
                 sendHttpResponse(writer, 200, "text/html", response);
-                // if (!this.sessionID.isEmpty() && WordleServer.hasSession(sessionID))
-                //     WordleServer.getSessionData(this.sessionID).decrementAttempts();
-
-                System.out.println("debug2_attempt: " + WordleServer.getSessionData(this.sessionID).getAttempt());
-                System.out.println("debug2_GameState: " + fullGameState);
-
                 return;
             }
             System.out.println("Guess: " + this.guess);
@@ -188,7 +182,7 @@ public class HttpHandler implements Runnable {
                 return false;
             } 
             if (!(method.equals("GET") || method.equals("HEAD") || method.equals("POST"))) {
-                System.err.println(method + " ::Invalid HTTP method");
+                System.err.println(method + " ::Unimplemented HTTP method");
                 sendErrorResponse(writer, 501);
                 return false;
             }
@@ -379,7 +373,7 @@ public class HttpHandler implements Runnable {
      */
     private void sendHttpResponse(PrintWriter writer, int statusCode, String contentType, String content) {
         // Check if the content should be chunked and get status message
-        boolean isChunked = content.length() > WordleServer.getMaxChunckSize();
+        boolean toChunk = content.length() > WordleServer.getMaxChunckSize();
         String statusMessage = getStatusMessage(statusCode);
 
         // Get content-length in bytes
@@ -389,7 +383,7 @@ public class HttpHandler implements Runnable {
         // Prepare the HTTP response headers
         Map<String, String> responseHeaders = new HashMap<>();
         responseHeaders.put("Content-Type", contentType);
-        if (isChunked) responseHeaders.put("Transfer-Encoding", "chunked");
+        if (toChunk) responseHeaders.put("Transfer-Encoding", "chunked");
         else responseHeaders.put("Content-Length", String.valueOf(contentLength));
         if (this.newSession) responseHeaders.put("Set-Cookie", "SESSID=" + this.sessionID + "; path=/; Max-Age=600");
         if(this.keepAliveRequest) responseHeaders.put("Connection", "close");
@@ -407,7 +401,7 @@ public class HttpHandler implements Runnable {
         writer.println();
         System.out.println();
 
-        if (isChunked) sendContentInChunks(writer, content);
+        if (toChunk) sendContentInChunks(writer, content);
         else {
             writer.println(content);
             System.out.println(content);
@@ -519,6 +513,7 @@ public class HttpHandler implements Runnable {
             sendErrorResponse(writer, 204);
             return false;
         }
+        // Call for game restart
         else if (uri.matches("^/play\\.html/restart$|^/restart$")) {
             System.out.println(uri + " ::Call for game restart");
             WordleServer.removeSession(this.sessionID);
@@ -623,11 +618,11 @@ public class HttpHandler implements Runnable {
     }
 
     /**
-        * Reads the body of the HTTP request from the provided BufferedReader and returns it as a String.
-        *
-        * @param reader the BufferedReader used to read the request body
-        * @return the body of the HTTP request as a String
-        */
+     * Reads the body of the HTTP request from the provided BufferedReader and returns it as a String.
+     *
+     * @param reader the BufferedReader used to read the request body
+     * @return the body of the HTTP request as a String
+     */
     private String getBody(BufferedReader reader) {
         try {
             // Check if the request is chunked

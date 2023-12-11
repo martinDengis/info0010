@@ -5,8 +5,18 @@ import java.util.Base64;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 
+/**
+ * The ImageEncoder class provides methods to encode an image file to a Base64-encoded string.
+ */
 public class ImageEncoder {
 
+    /**
+     * Encodes an image file to a Base64-encoded string.
+     *
+     * @param imagePath the path of the image file to be encoded
+     * @return the Base64-encoded string representation of the image
+     * @throws IOException if an I/O error occurs while reading the image file
+     */
     public static String encodeImageToBase64(String imagePath) throws IOException {
         try {
             BufferedImage image = ImageIO.read(new File(imagePath));
