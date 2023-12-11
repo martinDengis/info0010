@@ -23,6 +23,7 @@ public class HttpHandler implements Runnable {
     private boolean isChunked = false;
     private boolean isRequestGuess = false;
     private boolean isJavaScriptEnabled = true;
+    private boolean keepAliveRequest = false;
     private int rowID = -1; // -1 means no rowID (initial state)
     private String sessionID = "";
     private String guess = "";
@@ -223,9 +224,13 @@ public class HttpHandler implements Runnable {
             int length = Integer.parseInt(headers.get("Content-Length"));
             this.buffer = new char[length];
         }
-
+        
+        // Check if the request is chunked
         if (headers.containsKey("Transfer-Encoding") && headers.get("Transfer-Encoding").contains("chunked"))
             this.isChunked = true;
+        // Ensure connection closes
+        if (headers.containsKey("Connection") && headers.get("Connection").equals("keep-alive"))
+            this.keepAliveRequest = true;
 
         // Process headers in search of existing session
         if (headers.containsKey("Cookie")) {
@@ -273,6 +278,7 @@ public class HttpHandler implements Runnable {
             return false;
         }
 
+        // Check if mismatch exists between rowID submitted by browser and current attempt
         if (headers.containsKey("Row")) {
             String row = headers.get("Row");
             try {
@@ -386,6 +392,7 @@ public class HttpHandler implements Runnable {
         if (isChunked) responseHeaders.put("Transfer-Encoding", "chunked");
         else responseHeaders.put("Content-Length", String.valueOf(contentLength));
         if (this.newSession) responseHeaders.put("Set-Cookie", "SESSID=" + this.sessionID + "; path=/; Max-Age=600");
+        if(this.keepAliveRequest) responseHeaders.put("Connection", "close");
         responseHeaders.put("Date", new Date().toString());
         responseHeaders.put("Server", String.valueOf(this.serverID));
 
