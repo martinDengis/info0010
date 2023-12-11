@@ -2,20 +2,31 @@ import java.io.IOException;
 
 /**
  * The HTML class is responsible for generating the HTML page for the Wordle game.
+ * It includes methods to generate the entire page, the Wordle board, keyboard layout, styles, and other necessary components.
  */
 public class HTML {
     
-    public String generateWordlePage(String gameState) {
-        // Call the overloaded method with an empty error message
-        return generateWordlePage(gameState, "");
-    }
     /**
-     * Method for generating the HTML page for the Wordle game.
+     * Generates the Wordle game HTML page with the given game state.
+     * This overloaded method calls the primary method with an empty error message.
      * 
-     * @param gameState the full game state for current session 
+     * @param gameState the current game state
      * @return the HTML page as a String
      */
-    public String generateWordlePage(String gameState, String errorMessage) { // TODO generateErrorPage(getStatusMessage)
+    public String generateWordlePage(String gameState) {
+        return generateWordlePage(gameState, "");
+    }
+
+    /**
+     * Generates the Wordle game HTML page with the given game state and an optional error message.
+     * This method orchestrates the creation of the entire page including the header, Wordle board, keyboard, and error messages if any.
+     * 
+     * @param gameState    the current game state
+     * @param errorMessage an optional error message to display on the page
+     * @return the HTML page as a String
+     */
+    public String generateWordlePage(String gameState, String errorMessage) {
+        System.out.println("DEBUG_html_gamestate: " + gameState);
         // Image to base64
         String base64Image = "";
         try { base64Image = ImageEncoder.encodeImageToBase64("logo.png"); } 
@@ -25,10 +36,14 @@ public class HTML {
         String header = "<header><img src=\"data:image/png;base64,"+base64Image+"\" alt=\"WORDLE\"></header>";
         String wordleBoard = "";
         
-        boolean isNewGame = false;
-        String[] parts = gameState.split(";"); // -1:secret:secret;0:guess:color;1::;2::;3::;4::;5::
-        if (parts[1].equals("0::") || !parts[6].equals("5::")) isNewGame = true;
-
+        boolean isNewGame = true;
+        String[] parts = gameState.split(";");
+        for (int i = 1; i < parts.length; i++) {
+            if (!parts[i].equals(i-1 + "::")) {
+                isNewGame = false;
+                break;
+            }
+        }
         if (isNewGame) { wordleBoard = generateWordleBoard(); } // For a new game 
         else { wordleBoard = generateWordleBoardWithState(gameState); } // For a returning player
 
@@ -316,9 +331,10 @@ public class HTML {
     }
 
     /**
-     * Generates the Wordle board HTML string.
+     * Generates a blank Wordle board for a new game.
+     * This method constructs the initial empty board layout used at the start of a new game.
      * 
-     * @return The Wordle board HTML string.
+     * @return a string representing the initial empty Wordle board HTML
      */
     private String generateWordleBoard() {
         StringBuilder boardBuilder = new StringBuilder();
@@ -337,10 +353,11 @@ public class HTML {
     }
     
     /**
-     * Generates a Wordle board with the given game state.
+     * Generates a Wordle board based on the given game state.
+     * This method creates the board layout with guesses and color feedback for a game in progress.
      * 
      * @param gameState the game state represented as a string
-     * @return the generated Wordle board as a string
+     * @return a string representing the Wordle board HTML with the current game state
      */
     private String generateWordleBoardWithState(String gameState) {
         StringBuilder boardBuilder = new StringBuilder();
@@ -349,7 +366,14 @@ public class HTML {
         boolean gameEnded = false;
         boolean playerWon = false;
         String secretWord = "";
-        System.out.println("game state: " + gameState);
+
+        // Extract the secret word
+        if (tries.length > 0) {
+            String[] firstPart = tries[0].split(":");
+            if (firstPart.length > 2) {
+                secretWord = firstPart[2]; // Assuming the format is -1:secret:secretWord
+            }
+        }
 
         for (int i = 1; i < tries.length; i++) {
             String[] parts = tries[i].split(":");
