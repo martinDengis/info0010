@@ -96,10 +96,10 @@ public class HttpHandler implements Runnable {
                 sendHttpResponse(writer, 200, "text/html", response);
                 // if (!this.sessionID.isEmpty() && WordleServer.hasSession(sessionID))
                 //     WordleServer.getSessionData(this.sessionID).decrementAttempts();
-                
-                System.out.println("debug2_attempt: " + WordleServer.getSessionData(this.sessionID).getAttempt());
 
+                System.out.println("debug2_attempt: " + WordleServer.getSessionData(this.sessionID).getAttempt());
                 System.out.println("debug2_GameState: " + fullGameState);
+
                 return;
             }
             System.out.println("Guess: " + this.guess);
@@ -257,7 +257,7 @@ public class HttpHandler implements Runnable {
             String status = WordleServer.getSessionData(this.sessionID).getStatus();
             if(isExpired || status.equals("Gameover") || status.equals("Win")) {
                 WordleServer.removeSession(this.sessionID);
-                this.sessionID = "";    // Good behaviour ? Will start a new game but should identify this case to display a message
+                this.sessionID = "";
             }
         }
 
@@ -351,7 +351,6 @@ public class HttpHandler implements Runnable {
             String fullGameState = WordleServer.getFullGameState(this.sessionID);
             System.out.println("DEBUG_ID_gamestate: " + fullGameState);
 
-
             // Check if final state
             if (fullGameState.contains("GGGGG")) WordleServer.getSessionData(this.sessionID).setStatus("Win");
             else if (currAttempt == 5) WordleServer.getSessionData(this.sessionID).setStatus("Gameover");
@@ -407,7 +406,6 @@ public class HttpHandler implements Runnable {
             System.out.println(content);
             writer.flush();
         }
-
     }
 
     /**
@@ -452,14 +450,9 @@ public class HttpHandler implements Runnable {
     private void sendErrorResponse(PrintWriter writer, int statusCode) {
         String statusMessage = getStatusMessage(statusCode);
 
-        // HTML htmlGenerator = new HTML();
-        // String error = htmlGenerator.generateErrorPage(statusCode);
-        // String error = "error " + String.valueOf(statusCode);
-
         writer.println("HTTP/1.1 " + statusCode + " " + statusMessage);
         writer.println("Content-Type: text/plain");
         writer.println("Content-Length: 0");
-        // writer.println("Content-Length: " + error.length());
         if (statusCode == 303) writer.println("Location: http://localhost:8008/play.html");
         // writer.println();
         // writer.println(error);

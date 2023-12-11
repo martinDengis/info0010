@@ -38,12 +38,14 @@ public class HTML {
         
         boolean isNewGame = true;
         String[] parts = gameState.split(";");
-        for (int i = 1; i < parts.length; i++) {
-            if (!parts[i].equals(i-1 + "::")) {
-                isNewGame = false;
-                break;
-            }
-        }
+        // -1:secret:secret;0:guess:color;1:guess:color;2:guess:color;3:guess:color;4:guess:color;5:guess:color
+        if (parts[1].equals("0::") || !parts[6].equals("5::")) isNewGame = true;
+        // for (int i = 1; i < parts.length; i++) {
+        //     if (!parts[i].equals(i-1 + "::")) {
+        //         isNewGame = false;
+        //         break;
+        //     }
+        // }
         if (isNewGame) { wordleBoard = generateWordleBoard(); } // For a new game 
         else { wordleBoard = generateWordleBoardWithState(gameState); } // For a returning player
 
