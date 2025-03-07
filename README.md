@@ -1,4 +1,4 @@
-# (INFO0010-4) WordleGame Project
+# WordleGame Project
 *Introduction to computer networking (23-24)*
 
 ```
